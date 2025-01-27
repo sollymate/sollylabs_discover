@@ -8,11 +8,15 @@ import 'package:sollylabs_discover/pages/update_password_after_reset_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'database/database.dart';
+import 'database/services/connection_service.dart';
 import 'database/services/invitation_service.dart';
+import 'database/services/message_service.dart';
 import 'database/services/profile_service.dart';
 import 'database/services/project_permission_service.dart';
 import 'database/services/project_service.dart';
-import 'pages/account_page.dart';
+import 'pages/account/account_page.dart';
+import 'pages/dashboard_page.dart';
+import 'pages/update_password_page.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -66,8 +70,11 @@ Future<void> main() async {
             projectPermissionService: ProjectPermissionService(),
             profileService: ProfileService(),
             invitationService: InvitationService(),
+            connectionService: ConnectionService(),
+            messageService: MessageService(),
           ),
         ),
+
         // Add other providers here if needed
       ],
       child: const MyApp(),
@@ -90,6 +97,8 @@ class MyApp extends StatelessWidget {
         '/': (context) => const AuthGate(),
         '/account': (context) => const AccountPage(),
         '/update-password': (context) => const UpdatePasswordAfterResetPage(),
+        '/dashboard': (context) => const DashboardPage(),
+        '/update-password-in-app': (context) => const UpdatePasswordPage(),
       },
       initialRoute: '/',
     );

@@ -6,6 +6,53 @@ import 'package:sollylabs_discover/global/globals.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileService {
+  Future<String?> uploadAvatar(String userId, File imageFile) async {
+    try {
+      final fileExt = path.extension(imageFile.path);
+      final fileName = 'avatars/$userId/avatar$fileExt';
+
+      // Upload the file and get the response
+      final storageResponse = await globals.supabaseClient.storage
+          .from('avatars') // Replace 'avatars' with your bucket name
+          .upload(
+            fileName, // No need for duplicate 'avatars' here
+            imageFile,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+          );
+
+      // Get the public URL of the uploaded file
+      final String publicUrl = globals.supabaseClient.storage.from('avatars').getPublicUrl(fileName); // No need for duplicate 'avatars' here
+
+      return publicUrl;
+    } catch (e) {
+      print('Error uploading avatar: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteAvatar(String userId) async {
+    try {
+      final pathToDelete = 'avatars/$userId/';
+
+      // List all files within the user's avatar directory
+      final List<FileObject> files = await globals.supabaseClient.storage.from('avatars').list(path: pathToDelete);
+
+      // Create a list of file paths to delete (full path within the bucket)
+      final List<String> filesToDelete = files.map((file) => '$pathToDelete${file.name}').toList();
+      print("files: $files");
+
+      print("files to delete: $filesToDelete\n\n\n\n\n");
+
+      // Delete the files from storage
+      if (filesToDelete.isNotEmpty) {
+        await globals.supabaseClient.storage.from('avatars').remove(filesToDelete);
+      }
+    } catch (e) {
+      print('Error deleting avatar: $e');
+      rethrow;
+    }
+  }
+
   Future<Profile?> getProfile() async {
     final user = globals.supabaseClient.auth.currentUser;
     if (user == null) {
@@ -82,30 +129,6 @@ class ProfileService {
     }
   }
 
-  Future<String?> uploadAvatar(String userId, File imageFile) async {
-    try {
-      final fileExt = path.extension(imageFile.path);
-      final fileName = 'avatars/$userId/avatar$fileExt';
-
-      // Upload the file and get the response
-      final storageResponse = await globals.supabaseClient.storage
-          .from('avatars') // Replace 'avatars' with your bucket name
-          .upload(
-            fileName,
-            imageFile,
-            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
-          );
-
-      // Get the public URL of the uploaded file
-      final String publicUrl = globals.supabaseClient.storage.from('avatars').getPublicUrl(fileName);
-
-      return publicUrl;
-    } catch (e) {
-      print('Error uploading avatar: $e');
-      rethrow;
-    }
-  }
-
   Future<Profile?> getUserProfileById(String userId) async {
     try {
       final response = await globals.supabaseClient.from('profiles').select().eq('id', userId).maybeSingle(); // Use maybeSingle instead of single
@@ -122,6 +145,57 @@ class ProfileService {
     }
   }
 }
+
+// Future<void> deleteAvatar(String userId) async {
+//   try {
+//     final pathToDelete = 'avatars/$userId/';
+//
+//     // List all files that match the user's avatar path
+//     final List<FileObject> files = await globals.supabaseClient.storage
+//         .from('avatars')
+//         .list(path: pathToDelete);
+//
+//     // Filter the files to find the ones to delete
+//     final filesToDelete = files
+//         .map((file) => '$pathToDelete${file.name}')
+//         .toList();
+//
+//     // Delete the file(s) from storage
+//     if (filesToDelete.isNotEmpty) {
+//       await globals.supabaseClient.storage
+//           .from('avatars')
+//           .remove(filesToDelete);
+//     }
+//
+//   } catch (e) {
+//     print('Error deleting avatar: $e');
+//     rethrow;
+//   }
+// }
+
+// Future<String?> uploadAvatar(String userId, File imageFile) async {
+//   try {
+//     final fileExt = path.extension(imageFile.path);
+//     final fileName = 'avatars/$userId/avatar$fileExt';
+//
+//     // Upload the file and get the response
+//     final storageResponse = await globals.supabaseClient.storage
+//         .from('avatars') // Replace 'avatars' with your bucket name
+//         .upload(
+//           fileName,
+//           imageFile,
+//           fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+//         );
+//
+//     // Get the public URL of the uploaded file
+//     final String publicUrl = globals.supabaseClient.storage.from('avatars').getPublicUrl(fileName);
+//
+//     return publicUrl;
+//   } catch (e) {
+//     print('Error uploading avatar: $e');
+//     rethrow;
+//   }
+// }
 
 // import 'dart:io';
 //

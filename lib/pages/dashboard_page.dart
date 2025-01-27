@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sollylabs_discover/pages/account_page.dart';
+import 'package:sollylabs_discover/pages/account/account_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
