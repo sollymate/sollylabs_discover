@@ -1,0 +1,45 @@
+import 'package:uuid/uuid.dart';
+
+class ProjectPermission {
+  final UuidValue id;
+  final UuidValue projectId;
+  final UuidValue userId;
+  final String role;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  ProjectPermission({
+    required this.id,
+    required this.projectId,
+    required this.userId,
+    required this.role,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory ProjectPermission.fromJson(Map<String, dynamic> json) {
+    return ProjectPermission(
+      id: UuidValue.fromString(json['id']),
+      projectId: UuidValue.fromString(json['project_id']),
+      userId: UuidValue.fromString(json['user_id']),
+      role: json['role'],
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id.uuid,
+      'project_id': projectId.uuid,
+      'user_id': userId.uuid,
+      'role': role,
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
+    };
+  }
+}

@@ -1,0 +1,7 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class Globals {
+  final SupabaseClient supabaseClient = Supabase.instance.client;
+}
+
+final globals = Globals();
