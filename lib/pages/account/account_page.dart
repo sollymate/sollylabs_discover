@@ -56,13 +56,8 @@ class _AccountPageState extends State<AccountPage> {
         });
       }
     } catch (e) {
-      print('Error loading user profile: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error loading profile: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      debugPrint('Error loading user profile: $e');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error loading profile: $e'), backgroundColor: Colors.red));
     }
   }
 
@@ -73,7 +68,7 @@ class _AccountPageState extends State<AccountPage> {
       // Validate uniqueness of displayId if it's not null
       if (_displayIdController.text.isNotEmpty) {
         final isUnique = await database.profileService.isDisplayIdUnique(_displayIdController.text, _userProfile!.id.uuid);
-        if (!isUnique) {
+        if (!isUnique && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Display ID is already taken'),

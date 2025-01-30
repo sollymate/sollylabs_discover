@@ -19,7 +19,7 @@ class _CommunityPageState extends State<CommunityPage> {
   late String _currentUserEmail;
   List<Profile> _profiles = [];
   List<Profile> _filteredProfiles = [];
-  Set<String> _connectedUsers = {}; // Store connected user IDs
+  final Set<String> _connectedUsers = {}; // Store connected user IDs
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
 
@@ -40,7 +40,7 @@ class _CommunityPageState extends State<CommunityPage> {
     super.dispose();
   }
 
-  int _limit = 5; // Load 5 profiles per request
+  final int _limit = 5; // Load 5 profiles per request
   int _offset = 0; // Track the number of loaded profiles
   bool _hasMore = true;
 
@@ -256,18 +256,18 @@ class _CommunityPageState extends State<CommunityPage> {
   //   }
   // }
 
-  void _filterProfiles(String query) {
-    if (query.isEmpty) {
-      setState(() => _filteredProfiles = _profiles);
-      return;
-    }
-
-    setState(() {
-      _filteredProfiles = _profiles.where((profile) {
-        return profile.email?.toLowerCase().contains(query.toLowerCase()) ?? false;
-      }).toList();
-    });
-  }
+  // void _filterProfiles(String query) {
+  //   if (query.isEmpty) {
+  //     setState(() => _filteredProfiles = _profiles);
+  //     return;
+  //   }
+  //
+  //   setState(() {
+  //     _filteredProfiles = _profiles.where((profile) {
+  //       return profile.email?.toLowerCase().contains(query.toLowerCase()) ?? false;
+  //     }).toList();
+  //   });
+  // }
 
   Future<void> _sendConnectionRequest(String targetUserId) async {
     try {
@@ -277,9 +277,7 @@ class _CommunityPageState extends State<CommunityPage> {
         _connectedUsers.add(targetUserId); // ✅ Ensure UI reflects new connection
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Connection Added!')),
-      );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connection Added!')));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

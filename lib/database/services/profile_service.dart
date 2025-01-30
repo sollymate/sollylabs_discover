@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'package:sollylabs_discover/database/models/profile.dart';
 import 'package:sollylabs_discover/global/globals.dart';
@@ -114,7 +115,7 @@ class ProfileService {
 
       return globals.supabaseClient.storage.from('avatars').getPublicUrl(fileName);
     } catch (e) {
-      print('Error uploading avatar: $e');
+      debugPrint('Error uploading avatar: $e');
       rethrow;
     }
   }
@@ -130,7 +131,7 @@ class ProfileService {
         await globals.supabaseClient.storage.from('avatars').remove(filesToDelete);
       }
     } catch (e) {
-      print('Error deleting avatar: $e');
+      debugPrint('Error deleting avatar: $e');
       rethrow;
     }
   }
@@ -149,7 +150,7 @@ class ProfileService {
     try {
       await globals.supabaseClient.from('profiles').update(updatedProfile.toJson()).eq('id', updatedProfile.id.uuid);
     } catch (e) {
-      print('Error updating user profile: $e');
+      debugPrint('Error updating user profile: $e');
       rethrow;
     }
   }
