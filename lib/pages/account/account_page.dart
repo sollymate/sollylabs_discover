@@ -79,8 +79,6 @@ class _AccountPageState extends State<AccountPage> {
         avatarUrl = await database.profileService.uploadAvatar(_userProfile!.id.uuid, _avatarImage!);
       }
 
-      print('Profile Id: ${_userProfile!.id}');
-
       final updatedProfile = Profile(
         id: _userProfile!.id,
         fullName: _fullNameController.text,

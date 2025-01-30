@@ -6,27 +6,56 @@ class ConnectionService {
     var query = globals.supabaseClient.from('connection_profiles').select();
 
     if (searchQuery != null && searchQuery.isNotEmpty) {
-      query = query.or('user_email.ilike.%$searchQuery%,other_user_email.ilike.%$searchQuery%,'
-          'user_display_id.ilike.%$searchQuery%,other_user_display_id.ilike.%$searchQuery%,'
-          'user_full_name.ilike.%$searchQuery%,other_user_full_name.ilike.%$searchQuery%,'
-          'user_website.ilike.%$searchQuery%,other_user_website.ilike.%$searchQuery%');
+      query = query.or('user_email.ilike.%$searchQuery%,other_user_email.ilike.%$searchQuery%');
     }
 
     final response = await query;
 
-    final connectionProfiles = response.map<ConnectionProfile>((data) {
-      return ConnectionProfile.fromJson(data);
-    }).toList();
-
-    return connectionProfiles;
+    return response.map<ConnectionProfile>((data) => ConnectionProfile.fromJson(data)).toList();
   }
+
+  Future<void> blockConnection(String connectionId) async {
+    final response = await globals.supabaseClient
+        .from('connections')
+        .update({'is_blocked': true}) // ✅ Correct column name
+        .eq('id', connectionId)
+        .select();
+
+    if (response.isEmpty) {
+      throw Exception('Failed to block user');
+    }
+  }
+
+  Future<void> unblockConnection(String connectionId) async {
+    final response = await globals.supabaseClient
+        .from('connections')
+        .update({'is_blocked': false}) // ✅ Correct column name
+        .eq('id', connectionId)
+        .select();
+
+    if (response.isEmpty) {
+      throw Exception('Failed to unblock user');
+    }
+  }
+
+  // Future<void> blockConnection(String connectionId) async {
+  //   final response = await globals.supabaseClient.from('connections').update({'blocked': true}).eq('id', connectionId).select();
+  //
+  //   if (response.isEmpty) {
+  //     throw Exception('Failed to block user');
+  //   }
+  // }
+  //
+  // Future<void> unblockConnection(String connectionId) async {
+  //   final response = await globals.supabaseClient.from('connections').update({'blocked': false}).eq('id', connectionId).select();
+  //
+  //   if (response.isEmpty) {
+  //     throw Exception('Failed to unblock user');
+  //   }
+  // }
 
   Future<bool> removeConnection(String connectionId) async {
     final response = await globals.supabaseClient.from('connections').delete().eq('id', connectionId).select();
-
-    // if (response.isEmpty) {
-    //   throw Exception('Failed to remove connection');
-    // }
 
     return response.isNotEmpty; // Returns `true` if deletion was successful
   }

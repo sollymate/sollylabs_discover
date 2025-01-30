@@ -18,7 +18,7 @@ class _CommunityPageState extends State<CommunityPage> {
   late String _currentUserId;
   late String _currentUserEmail;
   List<Profile> _profiles = [];
-  Set<String> _connectedUserEmails = {}; // Store emails of connected users
+  // Set<String> _connectedUserEmails = {}; // Store emails of connected users
   Set<String> _connectedUserId = {}; // Store emails of connected users
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
@@ -50,10 +50,6 @@ class _CommunityPageState extends State<CommunityPage> {
     try {
       final connectionsProfile = await _connectionService.getConnections(_currentUserId);
       setState(() {
-        _connectedUserEmails = connectionsProfile
-            .map((c) => c.otherUserEmail) // Ensure non-null
-            .where((email) => email.isNotEmpty) // Remove empty values
-            .toSet();
         _connectedUserId = connectionsProfile
             .map((c) => c.otherUserId.toString()) // Ensure non-null
             .toSet();
@@ -104,7 +100,7 @@ class _CommunityPageState extends State<CommunityPage> {
       await _connectionService.addConnection(_currentUserId, targetUserId);
 
       setState(() {
-        _connectedUserEmails.add(targetUserId); // ✅ Update UI
+        // _connectedUserEmails.add(targetUserId); // ✅ Update UI
         _connectedUserId.add(targetUserId);
       });
 
