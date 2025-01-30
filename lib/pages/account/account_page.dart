@@ -69,12 +69,7 @@ class _AccountPageState extends State<AccountPage> {
       if (_displayIdController.text.isNotEmpty) {
         final isUnique = await database.profileService.isDisplayIdUnique(_displayIdController.text, _userProfile!.id.uuid);
         if (!isUnique && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Display ID is already taken'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Display ID is already taken'), backgroundColor: Colors.red));
           return;
         }
       }
@@ -83,6 +78,8 @@ class _AccountPageState extends State<AccountPage> {
       if (_avatarImage != null) {
         avatarUrl = await database.profileService.uploadAvatar(_userProfile!.id.uuid, _avatarImage!);
       }
+
+      print('Profile Id: ${_userProfile!.id}');
 
       final updatedProfile = Profile(
         id: _userProfile!.id,

@@ -77,25 +77,3 @@ class ProfileService {
     return response.isEmpty;
   }
 }
-
-/// ✅ **Get Profile by Email**
-// Future<Profile?> searchUserByEmail(String email) async {
-//   final response = await globals.supabaseClient.from('profiles').select().eq('email', email).maybeSingle();
-//   return response != null ? Profile.fromJson(response) : null;
-// }
-
-/// ✅ **Get User ID from Email**
-// Future<String> getUserIdFromEmail(String email) async {
-//   final response = await globals.supabaseClient.from('profiles').select('id').eq('email', email).limit(1);
-//
-//   if (response.isNotEmpty) {
-//     return response[0]['id'];
-//   } else {
-//     throw Exception('User not found');
-//   }
-// }
-/// ✅ **Get User Profile by ID**
-// Future<Profile?> getUserProfileById(String userId) async {
-//   final response = await globals.supabaseClient.from('profiles').select().eq('id', userId).maybeSingle();
-//   return response != null ? Profile.fromJson(response) : null;
-// }
