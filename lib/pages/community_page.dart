@@ -43,13 +43,13 @@ class _CommunityPageState extends State<CommunityPage> {
   Future<void> _fetchProfiles() async {
     setState(() => _isLoading = true);
     try {
-      final profiles = await _profileService.getAllProfiles();
+      final profiles = await _profileService.getAllProfiles(searchQuery: _searchController.text);
       final connections = await _connectionService.getConnections(_currentUserId);
 
       setState(() {
         _profiles = profiles;
-        _filteredProfiles = profiles; // Initialize filtered list
-        _connectedUsers = connections.map((c) => c.id).toSet(); // ✅ Use correct ID mapping
+        _filteredProfiles = profiles; // No need for local filtering
+        _connectedUsers = connections.map((c) => c.id).toSet();
       });
     } catch (e) {
       if (mounted) {
@@ -61,6 +61,31 @@ class _CommunityPageState extends State<CommunityPage> {
       setState(() => _isLoading = false);
     }
   }
+
+  // Future<void> _fetchProfiles() async {
+  //   setState(() => _isLoading = true);
+  //   try {
+  //     final profiles = await _profileService.getAllProfiles(searchQuery: _searchController.text);
+  //
+  //     // final profiles = await _profileService.getAllProfiles();
+  //     // final profiles = await _profileService.getAllProfiles();
+  //     final connections = await _connectionService.getConnections(_currentUserId);
+  //
+  //     setState(() {
+  //       _profiles = profiles;
+  //       _filteredProfiles = profiles; // Initialize filtered list
+  //       _connectedUsers = connections.map((c) => c.id).toSet(); // ✅ Use correct ID mapping
+  //     });
+  //   } catch (e) {
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: SelectableText('Error fetching profiles: $e')),
+  //       );
+  //     }
+  //   } finally {
+  //     setState(() => _isLoading = false);
+  //   }
+  // }
 
   void _filterProfiles(String query) {
     if (query.isEmpty) {
@@ -149,6 +174,7 @@ class _CommunityPageState extends State<CommunityPage> {
               textAlign: TextAlign.center,
             ),
           ),
+
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: TextField(
@@ -159,11 +185,27 @@ class _CommunityPageState extends State<CommunityPage> {
                 border: OutlineInputBorder(),
               ),
               onChanged: (query) {
-                _filterProfiles(query);
-                setState(() {}); // Force UI update
+                _fetchProfiles(); // 🔹 Fetch profiles directly from Supabase instead of filtering locally
               },
             ),
           ),
+
+          // Padding(
+          //   padding: const EdgeInsets.all(8.0),
+          //   child: TextField(
+          //     controller: _searchController,
+          //     decoration: const InputDecoration(
+          //       hintText: 'Search by email',
+          //       prefixIcon: Icon(Icons.search),
+          //       border: OutlineInputBorder(),
+          //     ),
+          //     onChanged: (query) {
+          //       // _profileService.getAllProfiles(searchQuery: _searchController.text);
+          //       // _filterProfiles(query);
+          //       setState(() {}); // Force UI update
+          //     },
+          //   ),
+          // ),
           if (_searchController.text.isNotEmpty)
             Align(
               alignment: Alignment.centerRight,
