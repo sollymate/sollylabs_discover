@@ -41,28 +41,6 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
     }
   }
 
-  Future<void> _removeConnection(String connectionId) async {
-    try {
-      await _connectionService.removeConnection(connectionId);
-
-      setState(() {
-        _connections.removeWhere((c) => c.connectionId == connectionId);
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Connection removed successfully!')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error removing connection: $e')),
-        );
-      }
-    }
-  }
-
   void _confirmRemoveConnection(String connectionId) async {
     try {
       bool isRemoved = await _connectionService.removeConnection(connectionId);
@@ -92,51 +70,6 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
       }
     }
   }
-
-  // void _confirmRemoveConnection(String connectionId) async {
-  //   try {
-  //     await _connectionService.removeConnection(connectionId);
-  //
-  //     setState(() {
-  //       _connections.removeWhere((connection) => connection.connectionId.toString() == connectionId);
-  //     });
-  //
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(content: Text('Connection removed successfully')),
-  //       );
-  //     }
-  //   } catch (e) {
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text('Error removing connection: $e')),
-  //       );
-  //     }
-  //   }
-  // }
-
-  // void _confirmRemoveConnection(String connectionId) {
-  //   showDialog(
-  //     context: context,
-  //     builder: (context) => AlertDialog(
-  //       title: const Text('Remove Connection'),
-  //       content: const Text('Are you sure you want to remove this connection?'),
-  //       actions: [
-  //         TextButton(
-  //           onPressed: () => Navigator.pop(context),
-  //           child: const Text('Cancel'),
-  //         ),
-  //         TextButton(
-  //           onPressed: () {
-  //             Navigator.pop(context);
-  //             _removeConnection(connectionId);
-  //           },
-  //           child: const Text('Remove', style: TextStyle(color: Colors.red)),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
 
   @override
   Widget build(BuildContext context) {

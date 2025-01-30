@@ -5,8 +5,6 @@ class ConnectionService {
   Future<List<ConnectionProfile>> getConnections(String userId, {String? searchQuery}) async {
     var query = globals.supabaseClient.from('connection_profiles').select();
 
-    print('Query Connections is: $query\n\n\n');
-
     if (searchQuery != null && searchQuery.isNotEmpty) {
       query = query.or('user_email.ilike.%$searchQuery%,other_user_email.ilike.%$searchQuery%,'
           'user_display_id.ilike.%$searchQuery%,other_user_display_id.ilike.%$searchQuery%,'

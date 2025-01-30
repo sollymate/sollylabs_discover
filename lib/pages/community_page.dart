@@ -19,6 +19,7 @@ class _CommunityPageState extends State<CommunityPage> {
   late String _currentUserEmail;
   List<Profile> _profiles = [];
   Set<String> _connectedUserEmails = {}; // Store emails of connected users
+  Set<String> _connectedUserId = {}; // Store emails of connected users
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
 
@@ -34,6 +35,7 @@ class _CommunityPageState extends State<CommunityPage> {
     _connectionService = Provider.of<ConnectionService>(context, listen: false);
     _currentUserId = authService.currentUser!.id;
     _currentUserEmail = authService.currentUser!.email ?? 'No Email';
+
     _fetchConnections(); // ✅ Load connected users first
     _fetchProfiles(); // ✅ Load community profiles
   }
@@ -46,11 +48,14 @@ class _CommunityPageState extends State<CommunityPage> {
 
   Future<void> _fetchConnections() async {
     try {
-      final connections = await _connectionService.getConnections(_currentUserId);
+      final connectionsProfile = await _connectionService.getConnections(_currentUserId);
       setState(() {
-        _connectedUserEmails = connections
-            .map((c) => c.otherUserEmail ?? '') // Ensure non-null
+        _connectedUserEmails = connectionsProfile
+            .map((c) => c.otherUserEmail) // Ensure non-null
             .where((email) => email.isNotEmpty) // Remove empty values
+            .toSet();
+        _connectedUserId = connectionsProfile
+            .map((c) => c.otherUserId.toString()) // Ensure non-null
             .toSet();
       });
     } catch (e) {
@@ -98,12 +103,13 @@ class _CommunityPageState extends State<CommunityPage> {
   }
 
   /// ✅ Send connection request
-  Future<void> _sendConnectionRequest(String targetUserEmail) async {
+  Future<void> _sendConnectionRequest(String targetUserId) async {
     try {
-      await _connectionService.addConnection(_currentUserId, targetUserEmail);
+      await _connectionService.addConnection(_currentUserId, targetUserId);
 
       setState(() {
-        _connectedUserEmails.add(targetUserEmail); // ✅ Update UI
+        _connectedUserEmails.add(targetUserId); // ✅ Update UI
+        _connectedUserId.add(targetUserId);
       });
 
       if (mounted) {
@@ -119,6 +125,29 @@ class _CommunityPageState extends State<CommunityPage> {
       }
     }
   }
+
+  ///
+  // Future<void> _sendConnectionRequest(String targetUserEmail) async {
+  //   try {
+  //     await _connectionService.addConnection(_currentUserId, targetUserEmail);
+  //
+  //     setState(() {
+  //       _connectedUserEmails.add(targetUserEmail); // ✅ Update UI
+  //     });
+  //
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(content: Text('Connection Added!')),
+  //       );
+  //     }
+  //   } catch (e) {
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('Error sending request: $e')),
+  //       );
+  //     }
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -181,9 +210,11 @@ class _CommunityPageState extends State<CommunityPage> {
                               itemBuilder: (context, index) {
                                 final profile = _profiles[index];
 
-                                if (profile.email == _currentUserEmail) return const SizedBox.shrink(); // ✅ Hide current user
+                                if (profile.id.toString() == _currentUserId) return const SizedBox.shrink(); // ✅ Hide current user
+                                // if (profile.email == _currentUserEmail) return const SizedBox.shrink(); // ✅ Hide current user
 
-                                final bool isConnected = _connectedUserEmails.contains(profile.email);
+                                // final bool isConnected = _connectedUserEmails.contains(profile.email);
+                                final bool isConnected = _connectedUserId.contains(profile.id.toString());
 
                                 return ListTile(
                                   leading: profile.avatarUrl != null ? CircleAvatar(backgroundImage: NetworkImage(profile.avatarUrl!)) : const CircleAvatar(child: Icon(Icons.person)),
@@ -192,7 +223,7 @@ class _CommunityPageState extends State<CommunityPage> {
                                   trailing: isConnected
                                       ? const Text('Connected', style: TextStyle(color: Colors.green))
                                       : ElevatedButton(
-                                          onPressed: () => _sendConnectionRequest(profile.email!),
+                                          onPressed: () => _sendConnectionRequest(profile.id.toString()),
                                           child: const Text('Connect'),
                                         ),
                                 );
