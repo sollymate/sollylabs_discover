@@ -15,6 +15,7 @@ import 'database/services/profile_service.dart';
 import 'database/services/project_permission_service.dart';
 import 'database/services/project_service.dart';
 import 'pages/account/account_page.dart';
+import 'pages/connections_page.dart';
 import 'pages/dashboard_page.dart';
 import 'pages/update_password_page.dart';
 
@@ -61,9 +62,7 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => AuthService(Supabase.instance.client),
-        ),
+        ChangeNotifierProvider(create: (_) => AuthService(Supabase.instance.client)),
         Provider<Database>(
           create: (_) => Database(
             projectService: ProjectService(),
@@ -74,7 +73,8 @@ Future<void> main() async {
             messageService: MessageService(),
           ),
         ),
-
+        Provider<ConnectionService>(create: (_) => ConnectionService()),
+        Provider<ProfileService>(create: (context) => context.read<Database>().profileService),
         // Add other providers here if needed
       ],
       child: const MyApp(),
@@ -99,6 +99,7 @@ class MyApp extends StatelessWidget {
         '/update-password': (context) => const UpdatePasswordAfterResetPage(),
         '/dashboard': (context) => const DashboardPage(),
         '/update-password-in-app': (context) => const UpdatePasswordPage(),
+        '/connections': (context) => const ConnectionsPage(), // Added route
       },
       initialRoute: '/',
     );

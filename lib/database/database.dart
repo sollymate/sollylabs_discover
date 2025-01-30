@@ -16,7 +16,7 @@ class Database {
   Database({
     required this.projectService,
     required this.projectPermissionService,
-    required this.profileService,
+    required this.profileService, // Ensure ProfileService is included
     required this.invitationService,
     required this.connectionService,
     required this.messageService,

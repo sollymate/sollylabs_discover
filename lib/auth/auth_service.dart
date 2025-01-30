@@ -116,7 +116,7 @@ class AuthService with ChangeNotifier {
         if (user != null) {
           final profileUpdateResponse = await _supabaseClient.from('profiles').update({'has_set_password': true}).eq('id', user.id).select();
 
-          if (profileUpdateResponse != null) {
+          if (profileUpdateResponse.isNotEmpty) {
             _log.info('Updated user profile successfully');
           } else {
             _log.warning('Failed to update user profile');
