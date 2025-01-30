@@ -6,22 +6,103 @@ import 'package:sollylabs_discover/global/globals.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfileService {
-  /// ✅ **Get all profiles (With optional search)**
-  Future<List<Profile>> getAllProfiles({String? searchQuery}) async {
+  Future<List<Profile>> getAllProfiles({String? searchQuery, int? limit, int offset = 0}) async {
     var query = globals.supabaseClient.from('profiles').select('id, email, display_id, full_name, avatar_url, updated_at');
 
     if (searchQuery != null && searchQuery.isNotEmpty) {
-      query = query.or('email.ilike.%$searchQuery%,display_id.ilike.%$searchQuery%,website.ilike.%$searchQuery%');
+      query = query.or('email.ilike.%$searchQuery%,display_id.ilike.%$searchQuery%,website.ilike.%$searchQuery%'); // ✅ Filter at DB level
     }
 
-    final response = await query;
+    final response = limit != null
+        ? await query.range(offset, offset + limit - 1) // ✅ Use correct offset for pagination
+        : await query;
 
-    if (response.isNotEmpty) {
-      return response.map<Profile>((data) => Profile.fromJson(data)).toList();
-    } else {
-      return [];
-    }
+    return response.isNotEmpty ? response.map<Profile>((data) => Profile.fromJson(data)).toList() : [];
   }
+
+  // Future<List<Profile>> getAllProfiles({String? searchQuery, int? limit, int offset = 0}) async {
+  //   var query = globals.supabaseClient.from('profiles').select('id, email, display_id, full_name, avatar_url, updated_at');
+  //
+  //   if (searchQuery != null && searchQuery.isNotEmpty) {
+  //     query = query.or('email.ilike.%$searchQuery%,display_id.ilike.%$searchQuery%,website.ilike.%$searchQuery%');
+  //   }
+  //
+  //   final response = limit != null
+  //       ? await query.range(offset, offset + limit - 1) // ✅ Ensure correct pagination
+  //       : await query;
+  //
+  //   return response.isNotEmpty ? response.map<Profile>((data) => Profile.fromJson(data)).toList() : [];
+  // }
+
+  // Future<List<Profile>> getAllProfiles({String? searchQuery, int? limit, int offset = 0}) async {
+  //   var query = globals.supabaseClient.from('profiles').select('id, email, display_id, full_name, avatar_url, updated_at');
+  //
+  //   if (searchQuery != null && searchQuery.isNotEmpty) {
+  //     query = query.or('email.ilike.%$searchQuery%,display_id.ilike.%$searchQuery%,website.ilike.%$searchQuery%');
+  //   }
+  //
+  //   final response = limit != null
+  //       ? await query.range(offset, offset + limit - 1) // ✅ Use correct offset
+  //       : await query;
+  //
+  //   return response.isNotEmpty ? response.map<Profile>((data) => Profile.fromJson(data)).toList() : [];
+  // }
+
+  // Future<List<Profile>> getAllProfiles({String? searchQuery, int? limit}) async {
+  //   var query = globals.supabaseClient.from('profiles').select('id, email, display_id, full_name, avatar_url, updated_at');
+  //
+  //   if (searchQuery != null && searchQuery.isNotEmpty) {
+  //     query = query.or('email.ilike.%$searchQuery%,display_id.ilike.%$searchQuery%,website.ilike.%$searchQuery%');
+  //   }
+  //
+  //   // Apply limit during query execution instead of reassigning
+  //   final response = limit != null
+  //       ? await query.range(0, limit - 1) // ✅ Apply `.range()` only at execution
+  //       : await query; // ✅ If no limit, execute normally
+  //
+  //   if (response.isNotEmpty) {
+  //     return response.map<Profile>((data) => Profile.fromJson(data)).toList();
+  //   } else {
+  //     return [];
+  //   }
+  // }
+
+  // Future<List<Profile>> getAllProfiles({String? searchQuery, int? limit}) async {
+  //   var query = globals.supabaseClient.from('profiles').select('id, email, display_id, full_name, avatar_url, updated_at');
+  //
+  //   if (searchQuery != null && searchQuery.isNotEmpty) {
+  //     query = query.or('email.ilike.%$searchQuery%,display_id.ilike.%$searchQuery%,website.ilike.%$searchQuery%');
+  //   }
+  //
+  //   if (limit != null) {
+  //     query = query.range(0, limit - 1); // Apply limit if provided
+  //   }
+  //
+  //   final response = await query;
+  //
+  //   if (response.isNotEmpty) {
+  //     return response.map<Profile>((data) => Profile.fromJson(data)).toList();
+  //   } else {
+  //     return [];
+  //   }
+  // }
+
+  /// ✅ **Get all profiles (With optional search)**
+  // Future<List<Profile>> getAllProfiles({String? searchQuery}) async {
+  //   var query = globals.supabaseClient.from('profiles').select('id, email, display_id, full_name, avatar_url, updated_at');
+  //
+  //   if (searchQuery != null && searchQuery.isNotEmpty) {
+  //     query = query.or('email.ilike.%$searchQuery%,display_id.ilike.%$searchQuery%,website.ilike.%$searchQuery%');
+  //   }
+  //
+  //   final response = await query;
+  //
+  //   if (response.isNotEmpty) {
+  //     return response.map<Profile>((data) => Profile.fromJson(data)).toList();
+  //   } else {
+  //     return [];
+  //   }
+  // }
 
   /// ✅ **Upload User Avatar**
   Future<String?> uploadAvatar(String userId, File imageFile) async {

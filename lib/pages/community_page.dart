@@ -40,16 +40,33 @@ class _CommunityPageState extends State<CommunityPage> {
     super.dispose();
   }
 
-  Future<void> _fetchProfiles() async {
+  int _limit = 5; // Load 5 profiles per request
+  int _offset = 0; // Track the number of loaded profiles
+  bool _hasMore = true;
+
+  Future<void> _fetchProfiles({bool isLoadMore = false}) async {
+    if (isLoadMore && !_hasMore) return; // Stop if no more profiles
+
+    if (!isLoadMore) _offset = 0; // ✅ Reset offset for new search query
+
     setState(() => _isLoading = true);
     try {
-      final profiles = await _profileService.getAllProfiles(searchQuery: _searchController.text);
-      final connections = await _connectionService.getConnections(_currentUserId);
+      final profiles = await _profileService.getAllProfiles(
+        searchQuery: _searchController.text, // ✅ Pass search query
+        limit: _limit,
+        offset: _offset, // ✅ Use correct offset for pagination
+      );
 
       setState(() {
-        _profiles = profiles;
-        _filteredProfiles = profiles; // No need for local filtering
-        _connectedUsers = connections.map((c) => c.id).toSet();
+        if (isLoadMore) {
+          _profiles.addAll(profiles); // ✅ Append new profiles
+        } else {
+          _profiles = profiles; // ✅ Initial search result
+        }
+
+        _filteredProfiles = _profiles;
+        _offset += _limit; // ✅ Move offset forward for next fetch
+        _hasMore = profiles.length == _limit; // ✅ Check if more profiles exist
       });
     } catch (e) {
       if (mounted) {
@@ -61,6 +78,158 @@ class _CommunityPageState extends State<CommunityPage> {
       setState(() => _isLoading = false);
     }
   }
+
+  // Future<void> _fetchProfiles({bool isLoadMore = false}) async {
+  //   if (isLoadMore && !_hasMore) return; // Stop if no more profiles
+  //
+  //   setState(() => _isLoading = true);
+  //   try {
+  //     final profiles = await _profileService.getAllProfiles(
+  //       searchQuery: _searchController.text,
+  //       limit: _limit,
+  //       offset: _offset, // ✅ Start fetching from the correct position
+  //     );
+  //
+  //     setState(() {
+  //       if (isLoadMore) {
+  //         _profiles.addAll(profiles); // ✅ Append new profiles
+  //       } else {
+  //         _profiles = profiles; // ✅ Initial load
+  //       }
+  //
+  //       _filteredProfiles = _profiles; // ✅ Update the displayed list
+  //       _offset += _limit; // ✅ Move offset forward for next fetch
+  //       _hasMore = profiles.length == _limit; // ✅ Check if more profiles exist
+  //     });
+  //   } catch (e) {
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: SelectableText('Error fetching profiles: $e')),
+  //       );
+  //     }
+  //   } finally {
+  //     setState(() => _isLoading = false);
+  //   }
+  // }
+
+  // int _limit = 5; // Number of profiles to load initially
+  // bool _hasMore = true; // Flag to check if more profiles exist
+  // int _offset = 0; // Tracks how many profiles have been loaded
+  //
+  // Future<void> _fetchProfiles({bool isLoadMore = false}) async {
+  //   if (isLoadMore && !_hasMore) return; // Stop loading if no more profiles
+  //
+  //   setState(() => _isLoading = true);
+  //   try {
+  //     final profiles = await _profileService.getAllProfiles(
+  //       searchQuery: _searchController.text,
+  //       limit: _limit,
+  //       offset: _offset, // ✅ Apply correct offset for pagination
+  //     );
+  //
+  //     setState(() {
+  //       if (isLoadMore) {
+  //         _profiles.addAll(profiles);
+  //       } else {
+  //         _profiles = profiles;
+  //       }
+  //
+  //       _filteredProfiles = _profiles;
+  //       _offset += _limit; // ✅ Increase offset to prevent duplicates
+  //       _hasMore = profiles.length == _limit; // ✅ Check if more profiles exist
+  //     });
+  //   } catch (e) {
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: SelectableText('Error fetching profiles: $e')),
+  //       );
+  //     }
+  //   } finally {
+  //     setState(() => _isLoading = false);
+  //   }
+  // }
+
+  // Future<void> _fetchProfiles({bool isLoadMore = false}) async {
+  //   if (isLoadMore && !_hasMore) return; // Stop loading if no more profiles
+  //
+  //   setState(() => _isLoading = true);
+  //   try {
+  //     final profiles = await _profileService.getAllProfiles(
+  //       searchQuery: _searchController.text,
+  //       limit: _limit, // Pass limit correctly
+  //     );
+  //
+  //     if (isLoadMore) {
+  //       _profiles.addAll(profiles);
+  //     } else {
+  //       _profiles = profiles;
+  //     }
+  //
+  //     _hasMore = profiles.length >= _limit; // If profiles returned < limit, no more to load
+  //
+  //     setState(() => _filteredProfiles = _profiles);
+  //   } catch (e) {
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: SelectableText('Error fetching profiles: $e')),
+  //       );
+  //     }
+  //   } finally {
+  //     setState(() => _isLoading = false);
+  //   }
+  // }
+
+  // Future<void> _fetchProfiles({bool isLoadMore = false}) async {
+  //   if (isLoadMore && !_hasMore) return; // Stop loading if no more profiles
+  //
+  //   setState(() => _isLoading = true);
+  //   try {
+  //     final profiles = await _profileService.getAllProfiles(
+  //       searchQuery: _searchController.text,
+  //       limit: _limit, // Apply limit
+  //     );
+  //
+  //     if (isLoadMore) {
+  //       _profiles.addAll(profiles);
+  //     } else {
+  //       _profiles = profiles;
+  //     }
+  //
+  //     _hasMore = profiles.length >= _limit; // If profiles returned < limit, no more to load
+  //
+  //     setState(() => _filteredProfiles = _profiles);
+  //   } catch (e) {
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: SelectableText('Error fetching profiles: $e')),
+  //       );
+  //     }
+  //   } finally {
+  //     setState(() => _isLoading = false);
+  //   }
+  // }
+
+  // Future<void> _fetchProfiles() async {
+  //   setState(() => _isLoading = true);
+  //   try {
+  //     final profiles = await _profileService.getAllProfiles(searchQuery: _searchController.text);
+  //     final connections = await _connectionService.getConnections(_currentUserId);
+  //
+  //     setState(() {
+  //       _profiles = profiles;
+  //       _filteredProfiles = profiles; // No need for local filtering
+  //       _connectedUsers = connections.map((c) => c.id).toSet();
+  //     });
+  //   } catch (e) {
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: SelectableText('Error fetching profiles: $e')),
+  //       );
+  //     }
+  //   } finally {
+  //     setState(() => _isLoading = false);
+  //   }
+  // }
 
   // Future<void> _fetchProfiles() async {
   //   setState(() => _isLoading = true);
@@ -175,20 +344,32 @@ class _CommunityPageState extends State<CommunityPage> {
             ),
           ),
 
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                hintText: 'Search by email',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (query) {
-                _fetchProfiles(); // 🔹 Fetch profiles directly from Supabase instead of filtering locally
-              },
+          TextField(
+            controller: _searchController,
+            decoration: const InputDecoration(
+              hintText: 'Search by email',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(),
             ),
+            onChanged: (query) {
+              _fetchProfiles(isLoadMore: false); // ✅ Call fetch method on search input
+            },
           ),
+
+          // Padding(
+          //   padding: const EdgeInsets.all(8.0),
+          //   child: TextField(
+          //     controller: _searchController,
+          //     decoration: const InputDecoration(
+          //       hintText: 'Search by email',
+          //       prefixIcon: Icon(Icons.search),
+          //       border: OutlineInputBorder(),
+          //     ),
+          //     onChanged: (query) {
+          //       _fetchProfiles(); // 🔹 Fetch profiles directly from Supabase instead of filtering locally
+          //     },
+          //   ),
+          // ),
 
           // Padding(
           //   padding: const EdgeInsets.all(8.0),
@@ -206,6 +387,20 @@ class _CommunityPageState extends State<CommunityPage> {
           //     },
           //   ),
           // ),
+          // if (_searchController.text.isNotEmpty)
+          //   Align(
+          //     alignment: Alignment.centerRight,
+          //     child: Padding(
+          //       padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          //       child: TextButton(
+          //         onPressed: () {
+          //           _searchController.clear();
+          //           setState(() => _filteredProfiles = _profiles);
+          //         },
+          //         child: const Text('Clear Search'),
+          //       ),
+          //     ),
+          //   ),
           if (_searchController.text.isNotEmpty)
             Align(
               alignment: Alignment.centerRight,
@@ -214,40 +409,96 @@ class _CommunityPageState extends State<CommunityPage> {
                 child: TextButton(
                   onPressed: () {
                     _searchController.clear();
-                    setState(() => _filteredProfiles = _profiles);
+                    _fetchProfiles(isLoadMore: false); // ✅ Reset list on clear
                   },
                   child: const Text('Clear Search'),
                 ),
               ),
             ),
+
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredProfiles.isEmpty
                     ? const Center(child: Text('No profiles found.'))
-                    : ListView.builder(
-                        itemCount: _filteredProfiles.length,
-                        itemBuilder: (context, index) {
-                          final profile = _filteredProfiles[index];
+                    : Column(
+                        children: [
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: _filteredProfiles.length,
+                              itemBuilder: (context, index) {
+                                final profile = _filteredProfiles[index];
 
-                          if (profile.id.toString() == _currentUserId) return const SizedBox.shrink();
+                                if (profile.id.toString() == _currentUserId) return const SizedBox.shrink();
 
-                          final bool isConnected = _connectedUsers.contains(profile.id);
+                                final bool isConnected = _connectedUsers.contains(profile.id.toString());
 
-                          return ListTile(
-                            leading: profile.avatarUrl != null ? CircleAvatar(backgroundImage: NetworkImage(profile.avatarUrl!)) : const CircleAvatar(child: Icon(Icons.person)),
-                            title: Text(profile.displayId ?? 'Unknown User'),
-                            subtitle: Text(profile.email ?? 'No Email'),
-                            trailing: isConnected
-                                ? const Text('Connected', style: TextStyle(color: Colors.green))
-                                : ElevatedButton(
-                                    onPressed: () => _sendConnectionRequest(profile.id.toString()),
-                                    child: const Text('Connect'),
-                                  ),
-                          );
-                        },
+                                return ListTile(
+                                  leading: profile.avatarUrl != null ? CircleAvatar(backgroundImage: NetworkImage(profile.avatarUrl!)) : const CircleAvatar(child: Icon(Icons.person)),
+                                  title: Text(profile.displayId ?? 'Unknown User'),
+                                  subtitle: Text(profile.email ?? 'No Email'),
+                                  trailing: isConnected
+                                      ? const Text('Connected', style: TextStyle(color: Colors.green))
+                                      : ElevatedButton(
+                                          onPressed: () => _sendConnectionRequest(profile.id.toString()),
+                                          child: const Text('Connect'),
+                                        ),
+                                );
+                              },
+                            ),
+                          ),
+                          if (_hasMore) // Show "Load More" button only if more profiles exist
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              child: ElevatedButton(
+                                onPressed: () => _fetchProfiles(isLoadMore: true),
+                                child: const Text('Load More'),
+                              ),
+                            ),
+
+                          // if (_hasMore) // Show "Load More" button only if more profiles exist
+                          //   Padding(
+                          //     padding: const EdgeInsets.symmetric(vertical: 10),
+                          //     child: ElevatedButton(
+                          //       onPressed: () {
+                          //         setState(() => _limit += 5); // Increase limit by 5
+                          //         _fetchProfiles(isLoadMore: true);
+                          //       },
+                          //       child: const Text('Load More'),
+                          //     ),
+                          //   ),
+                        ],
                       ),
           ),
+
+          // Expanded(
+          //   child: _isLoading
+          //       ? const Center(child: CircularProgressIndicator())
+          //       : _filteredProfiles.isEmpty
+          //           ? const Center(child: Text('No profiles found.'))
+          //           : ListView.builder(
+          //               itemCount: _filteredProfiles.length,
+          //               itemBuilder: (context, index) {
+          //                 final profile = _filteredProfiles[index];
+          //
+          //                 if (profile.id.toString() == _currentUserId) return const SizedBox.shrink();
+          //
+          //                 final bool isConnected = _connectedUsers.contains(profile.id);
+          //
+          //                 return ListTile(
+          //                   leading: profile.avatarUrl != null ? CircleAvatar(backgroundImage: NetworkImage(profile.avatarUrl!)) : const CircleAvatar(child: Icon(Icons.person)),
+          //                   title: Text(profile.displayId ?? 'Unknown User'),
+          //                   subtitle: Text(profile.email ?? 'No Email'),
+          //                   trailing: isConnected
+          //                       ? const Text('Connected', style: TextStyle(color: Colors.green))
+          //                       : ElevatedButton(
+          //                           onPressed: () => _sendConnectionRequest(profile.id.toString()),
+          //                           child: const Text('Connect'),
+          //                         ),
+          //                 );
+          //               },
+          //             ),
+          // ),
         ],
       ),
     );
