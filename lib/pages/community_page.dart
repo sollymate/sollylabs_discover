@@ -71,7 +71,7 @@ class _CommunityPageState extends State<CommunityPage> {
 
     setState(() => _isLoading = true);
     try {
-      final profiles = await _profileService.getAllProfiles(searchQuery: _searchController.text, limit: _limit, offset: _offset);
+      final profiles = await _profileService.getAllProfiles(searchQuery: _searchController.text, limit: _limit, offset: _offset, currentUserId: _currentUserId);
 
       setState(() {
         if (isLoadMore) {
