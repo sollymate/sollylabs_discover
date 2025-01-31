@@ -15,7 +15,6 @@ import 'database/services/profile_service.dart';
 import 'database/services/project_permission_service.dart';
 import 'pages/account/account_page.dart';
 import 'pages/community_page.dart';
-import 'pages/connections_page.dart';
 import 'pages/dashboard_page.dart';
 import 'pages/network_page.dart';
 import 'pages/update_password_page.dart';
@@ -104,7 +103,6 @@ class MyApp extends StatelessWidget {
         '/update-password': (context) => const UpdatePasswordAfterResetPage(),
         '/dashboard': (context) => const DashboardPage(),
         '/update-password-in-app': (context) => const UpdatePasswordPage(),
-        '/connections': (context) => const ConnectionsPage(), // Added route
         '/community': (context) => const CommunityPage(),
         '/network': (context) => const NetworkPage(),
       },
