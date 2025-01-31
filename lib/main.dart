@@ -10,11 +10,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'database/database.dart';
 import 'database/services/connection_service.dart';
-import 'database/services/message_service.dart';
 import 'database/services/network_service.dart';
 import 'database/services/profile_service.dart';
 import 'database/services/project_permission_service.dart';
-import 'database/services/project_service.dart';
 import 'pages/account/account_page.dart';
 import 'pages/community_page.dart';
 import 'pages/connections_page.dart';
@@ -69,11 +67,10 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => AuthService(Supabase.instance.client)),
         Provider<Database>(
           create: (_) => Database(
-            projectService: ProjectService(),
             projectPermissionService: ProjectPermissionService(),
             profileService: ProfileService(),
             connectionService: ConnectionService(),
-            messageService: MessageService(),
+
             communityService: CommunityService(),
             networkService: NetworkService(), //
           ),
