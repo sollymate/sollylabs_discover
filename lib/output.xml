@@ -1,0 +1,5045 @@
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:provider/provider.dart';
+import 'package:sollylabs_discover/auth/auth_gate.dart';
+import 'package:sollylabs_discover/auth/auth_service.dart';
+import 'package:sollylabs_discover/pages/update_password_after_reset_page.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'database/database.dart';
+import 'database/services/connection_service.dart';
+import 'database/services/invitation_service.dart';
+import 'database/services/message_service.dart';
+import 'database/services/profile_service.dart';
+import 'database/services/project_permission_service.dart';
+import 'database/services/project_service.dart';
+import 'pages/account/account_page.dart';
+import 'pages/connections_page.dart';
+import 'pages/dashboard_page.dart';
+import 'pages/update_password_page.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Use path-based URLs for web (remove the #)
+  usePathUrlStrategy();
+
+  await Supabase.initialize(
+    url: 'https://xxrsdsxpunwytsfizujp.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4cnNkc3hwdW53eXRzZml6dWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0NTQ5NjgsImV4cCI6MjA1MzAzMDk2OH0.39sq7-uHSVPcKN6fzGzLOPt4pUXi3bnn-F-eT6UFLfw',
+  ).then((_) {
+    // Handle redirect here after initialization
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final AuthChangeEvent event = data.event;
+      final Session? session = data.session;
+
+      if (kDebugMode) {
+        print("Auth Change Event: $event");
+        print('Session: ${session?.toJson()}');
+      }
+
+      if (event == AuthChangeEvent.signedIn) {
+        // Navigate to account page only if there is a session
+        if (session != null) {
+          if (kDebugMode) {
+            print("Navigating to /account");
+          }
+          navigatorKey.currentState?.pushReplacementNamed('/account');
+        }
+      } else if (event == AuthChangeEvent.passwordRecovery) {
+        // Navigate to update password page
+        if (kDebugMode) {
+          print("Navigating to /update-password");
+        }
+        navigatorKey.currentState?.pushReplacementNamed('/update-password');
+      }
+    });
+  });
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthService(Supabase.instance.client)),
+        Provider<Database>(
+          create: (_) => Database(
+            projectService: ProjectService(),
+            projectPermissionService: ProjectPermissionService(),
+            profileService: ProfileService(),
+            invitationService: InvitationService(),
+            connectionService: ConnectionService(),
+            messageService: MessageService(),
+          ),
+        ),
+        Provider<ConnectionService>(create: (_) => ConnectionService()),
+        Provider<ProfileService>(create: (context) => context.read<Database>().profileService),
+        // Add other providers here if needed
+      ],
+      child: const MyApp(),
+    ),
+  );
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      navigatorKey: navigatorKey,
+      title: 'Solly Labs',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      routes: {
+        '/': (context) => const AuthGate(),
+        '/account': (context) => const AccountPage(),
+        '/update-password': (context) => const UpdatePasswordAfterResetPage(),
+        '/dashboard': (context) => const DashboardPage(),
+        '/update-password-in-app': (context) => const UpdatePasswordPage(),
+        '/connections': (context) => const ConnectionsPage(), // Added route
+      },
+      initialRoute: '/',
+    );
+  }
+}
+    </document_content>
+  </document>
+  <document index="2">
+    <source>auth_gate.dart</source>
+    <document_content>
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sollylabs_discover/auth/auth_service.dart';
+import 'package:sollylabs_discover/pages/dashboard_page.dart';
+import 'package:sollylabs_discover/pages/login_page.dart';
+
+class AuthGate extends StatefulWidget {
+  const AuthGate({super.key});
+
+  @override
+  State<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<AuthGate> {
+  bool _isLoggedIn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthentication();
+  }
+
+  Future<void> _checkAuthentication() async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+
+    // Initial check for logged-in user
+    if (authService.currentUser != null) {
+      _isLoggedIn = true;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isLoggedIn) {
+      return const LoginPage();
+    } else {
+      return const DashboardPage();
+    }
+  }
+}
+
+// import 'dart:async';
+//
+// import 'package:flutter/material.dart';
+// import 'package:provider/provider.dart';
+// import 'package:sollylabs_discover/auth/auth_service.dart';
+// import 'package:sollylabs_discover/pages/account_page.dart';
+// import 'package:sollylabs_discover/pages/create_password_page.dart';
+// import 'package:sollylabs_discover/pages/login_page.dart';
+//
+// class AuthGate extends StatefulWidget {
+//   const AuthGate({super.key});
+//
+//   @override
+//   State<AuthGate> createState() => _AuthGateState();
+// }
+//
+// class _AuthGateState extends State<AuthGate> {
+//   bool _isLoggedIn = false;
+//   bool _hasPassword = false;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _checkAuthentication();
+//   }
+//
+//   Future<void> _checkAuthentication() async {
+//     final authService = Provider.of<AuthService>(context, listen: false);
+//
+//     // Initial check for logged-in user
+//     if (authService.currentUser != null) {
+//       _isLoggedIn = true;
+//       await _checkIfUserHasPassword(authService);
+//     }
+//   }
+//
+//   Future<void> _checkIfUserHasPassword(AuthService authService) async {
+//     final hasPassword = await authService.checkIfPasswordIsSet();
+//     setState(() {
+//       _hasPassword = hasPassword;
+//     });
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     if (!_isLoggedIn) {
+//       return const LoginPage();
+//     } else if (_isLoggedIn && !_hasPassword) {
+//       return const CreatePasswordPage();
+//     } else {
+//       return const AccountPage();
+//     }
+//   }
+// }
+//
+// // import 'dart:async';
+// //
+// // import 'package:flutter/material.dart';
+// // import 'package:provider/provider.dart';
+// // import 'package:sollylabs_discover/auth/auth_service.dart';
+// // import 'package:sollylabs_discover/pages/account_page.dart';
+// // import 'package:sollylabs_discover/pages/create_password_page.dart';
+// // import 'package:sollylabs_discover/pages/login_page.dart';
+// // import 'package:supabase_flutter/supabase_flutter.dart';
+// //
+// // class AuthGate extends StatefulWidget {
+// //   const AuthGate({super.key});
+// //
+// //   @override
+// //   State<AuthGate> createState() => _AuthGateState();
+// // }
+// //
+// // class _AuthGateState extends State<AuthGate> {
+// //   StreamSubscription<AuthState>? _authSubscription;
+// //   bool _isLoggedIn = false;
+// //   bool _hasPassword = false;
+// //
+// //   @override
+// //   void initState() {
+// //     super.initState();
+// //     _checkAuthentication();
+// //   }
+// //
+// //   Future<void> _checkAuthentication() async {
+// //     final authService = Provider.of<AuthService>(context, listen: false);
+// //
+// //     // Initial check for logged-in user
+// //     if (authService.currentUser != null) {
+// //       _isLoggedIn = true;
+// //       await _checkIfUserHasPassword(authService);
+// //     }
+// //
+// //     // Listener for changes in authentication state
+// //     _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+// //       final AuthChangeEvent event = data.event;
+// //
+// //       if (event == AuthChangeEvent.signedOut) {
+// //         setState(() {
+// //           _isLoggedIn = false;
+// //           _hasPassword = false;
+// //         });
+// //       } else if (event == AuthChangeEvent.signedIn) {
+// //         _isLoggedIn = true;
+// //         _checkIfUserHasPassword(authService);
+// //       }
+// //     });
+// //   }
+// //
+// //   Future<void> _checkIfUserHasPassword(AuthService authService) async {
+// //     final hasPassword = await authService.checkIfPasswordIsSet();
+// //     setState(() {
+// //       _hasPassword = hasPassword;
+// //     });
+// //   }
+// //
+// //   @override
+// //   void dispose() {
+// //     _authSubscription?.cancel();
+// //     super.dispose();
+// //   }
+// //
+// //   @override
+// //   Widget build(BuildContext context) {
+// //     print('\n\n\nLogged In: $_isLoggedIn, Has Password: $_hasPassword\n\n\n');
+// //     if (!_isLoggedIn) {
+// //       return const LoginPage();
+// //     } else if (_isLoggedIn && !_hasPassword) {
+// //       return const CreatePasswordPage();
+// //     } else {
+// //       return const AccountPage();
+// //     }
+// //   }
+// // }
+    </document_content>
+  </document>
+  <document index="3">
+    <source>auth_service.dart</source>
+    <document_content>
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:logging/logging.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class AuthService with ChangeNotifier {
+  final SupabaseClient _supabaseClient;
+  final Logger _log = Logger('AuthService');
+
+  StreamSubscription? _authSubscription;
+
+  AuthService(this._supabaseClient) {
+    _initializeAuthListener();
+    _configureLogging();
+  }
+
+  void _configureLogging() {
+    Logger.root.level = Level.ALL; // You can adjust the level
+    Logger.root.onRecord.listen((record) {
+      debugPrint('${record.level.name}: ${record.time}: ${record.message}');
+    });
+  }
+
+  void _initializeAuthListener() {
+    _authSubscription = _supabaseClient.auth.onAuthStateChange.listen((AuthState data) {
+      _handleAuthStateChange(data);
+    });
+  }
+
+  void _handleAuthStateChange(AuthState data) {
+    final AuthChangeEvent event = data.event;
+    final Session? session = data.session;
+
+    _log.info('Auth Change Event: $event');
+    if (session != null) {
+      _log.info('Session: ${session.toJson()}');
+    }
+    notifyListeners();
+  }
+
+  User? get currentUser => _supabaseClient.auth.currentUser;
+
+  Future<void> signInWithEmailAndPassword(String email, String password) async {
+    try {
+      await _supabaseClient.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      notifyListeners();
+    } catch (e) {
+      _log.severe('Error during sign in with email and password: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> signInWithOtp(String email) async {
+    try {
+      await _supabaseClient.auth.signInWithOtp(
+        email: email,
+        emailRedirectTo: 'io.supabase.flutter://login-callback/',
+      );
+      notifyListeners();
+    } catch (e) {
+      _log.severe('Error during sign in with OTP: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> verifyOtp(String email, String token) async {
+    try {
+      await _supabaseClient.auth.verifyOTP(
+        email: email,
+        token: token,
+        type: OtpType.recovery,
+      );
+      notifyListeners();
+    } catch (e) {
+      _log.severe('Error during OTP verification: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> signOut() async {
+    try {
+      await _supabaseClient.auth.signOut();
+      notifyListeners();
+    } catch (e) {
+      _log.severe('Error during sign out: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _supabaseClient.auth.resetPasswordForEmail(
+        email,
+        redirectTo: kIsWeb
+            ? 'http://localhost:3000/#/update-password' // Web URL
+            : 'io.supabase.flutter://login-callback/', // Mobile deep link URL
+      );
+      notifyListeners();
+    } catch (e) {
+      _log.severe('Error sending password reset email: $e');
+      rethrow;
+    }
+  }
+
+  Future<bool> updateUserPassword({required String password}) async {
+    try {
+      final updates = UserAttributes(password: password);
+      final response = await _supabaseClient.auth.updateUser(updates);
+      if (response.user != null) {
+        // Update the 'has_set_password' field in the 'profiles' table to true
+        final user = _supabaseClient.auth.currentUser;
+        if (user != null) {
+          final profileUpdateResponse = await _supabaseClient.from('profiles').update({'has_set_password': true}).eq('id', user.id).select();
+
+          if (profileUpdateResponse.isNotEmpty) {
+            _log.info('Updated user profile successfully');
+          } else {
+            _log.warning('Failed to update user profile');
+          }
+        }
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _log.severe('Error updating user password after OTP: $e');
+      return false;
+    }
+  }
+
+  Future<void> requestPasswordResetOtp(String email) async {
+    try {
+      await _supabaseClient.auth.signInWithOtp(
+        email: email,
+        emailRedirectTo: kIsWeb ? 'http://localhost:3000/#/update-password' : 'io.supabase.flutter://login-callback/',
+      );
+      notifyListeners();
+    } catch (e) {
+      _log.severe('Error requesting password reset OTP: $e');
+      rethrow;
+    }
+  }
+
+  Future<bool> checkIfPasswordIsSet() async {
+    final user = _supabaseClient.auth.currentUser;
+    if (user == null) return false;
+
+    try {
+      final response = await _supabaseClient.from('profiles').select('has_set_password').eq('id', user.id).maybeSingle();
+
+      if (response != null && response.containsKey('has_set_password')) {
+        return response['has_set_password'] as bool;
+      }
+    } catch (e) {
+      _log.severe('Error checking if password is set: $e');
+    }
+
+    return false;
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
+  // Method to verify the current password
+  Future<bool> verifyCurrentPassword({required String password}) async {
+    try {
+      final currentUserEmail = _supabaseClient.auth.currentUser?.email;
+      if (currentUserEmail == null) {
+        _log.warning('Current user email is null');
+        return false;
+      }
+
+      // Attempt to sign in with the current user's email and provided password
+      final signInResponse = await _supabaseClient.auth.signInWithPassword(
+        email: currentUserEmail,
+        password: password,
+      );
+
+      // Check if sign-in was successful
+      if (signInResponse.session != null) {
+        _log.info('Current password verification successful');
+        return true;
+      } else {
+        _log.warning('Current password verification failed');
+        return false;
+      }
+    } catch (e) {
+      _log.severe('Error during current password verification: $e');
+      return false;
+    }
+  }
+}
+
+// import 'dart:async';
+//
+// import 'package:flutter/foundation.dart';
+// import 'package:logging/logging.dart';
+// import 'package:supabase_flutter/supabase_flutter.dart';
+//
+// class AuthService with ChangeNotifier {
+//   final SupabaseClient _supabaseClient;
+//   final Logger _log = Logger('AuthService');
+//
+//   StreamSubscription? _authSubscription;
+//
+//   AuthService(this._supabaseClient) {
+//     _initializeAuthListener();
+//     // Configure logging
+//     Logger.root.level = Level.ALL; // You can adjust the level
+//     Logger.root.onRecord.listen((record) {
+//       debugPrint('${record.level.name}: ${record.time}: ${record.message}');
+//     });
+//   }
+//
+//   void _initializeAuthListener() {
+//     _authSubscription = _supabaseClient.auth.onAuthStateChange.listen((AuthState data) {
+//       _handleAuthStateChange(data);
+//     });
+//   }
+//
+//   void _handleAuthStateChange(AuthState data) {
+//     final AuthChangeEvent event = data.event;
+//     final Session? session = data.session;
+//
+//     _log.info('Auth Change Event: $event');
+//     if (session != null) {
+//       _log.info('Session: ${session.toJson()}');
+//     }
+//     notifyListeners();
+//   }
+//
+//   User? get currentUser => _supabaseClient.auth.currentUser;
+//
+//   Future<void> signInWithEmailAndPassword(String email, String password) async {
+//     try {
+//       await _supabaseClient.auth.signInWithPassword(
+//         email: email,
+//         password: password,
+//       );
+//       notifyListeners();
+//     } catch (e) {
+//       _log.severe('Error during sign in with email and password: $e');
+//       rethrow;
+//     }
+//   }
+//
+//   Future<void> signInWithOtp(String email) async {
+//     try {
+//       await _supabaseClient.auth.signInWithOtp(
+//         email: email,
+//         emailRedirectTo: 'io.supabase.flutter://login-callback/',
+//       );
+//       notifyListeners();
+//     } catch (e) {
+//       _log.severe('Error during sign in with OTP: $e');
+//       rethrow;
+//     }
+//   }
+//
+//   Future<void> verifyOtp(String email, String token) async {
+//     try {
+//       await _supabaseClient.auth.verifyOTP(
+//         email: email,
+//         token: token,
+//         type: OtpType.recovery,
+//       );
+//       notifyListeners();
+//     } catch (e) {
+//       _log.severe('Error during OTP verification: $e');
+//       rethrow;
+//     }
+//   }
+//
+//   Future<void> signOut() async {
+//     try {
+//       await _supabaseClient.auth.signOut();
+//       notifyListeners();
+//     } catch (e) {
+//       _log.severe('Error during sign out: $e');
+//       rethrow;
+//     }
+//   }
+//
+//   Future<void> sendPasswordResetEmail(String email) async {
+//     try {
+//       await _supabaseClient.auth.resetPasswordForEmail(
+//         email,
+//         redirectTo: kIsWeb
+//             ? 'http://localhost:3000/#/update-password' // Web URL
+//             : 'io.supabase.flutter://login-callback/', // Mobile deep link URL
+//       );
+//       notifyListeners();
+//     } catch (e) {
+//       _log.severe('Error sending password reset email: $e');
+//       rethrow;
+//     }
+//   }
+//
+//   Future<bool> updateUserPassword({required String password}) async {
+//     try {
+//       final updates = UserAttributes(password: password);
+//       final response = await _supabaseClient.auth.updateUser(updates);
+//       if (response.user != null) {
+//         // Update the 'has_set_password' field in the 'profiles' table to true
+//         final user = _supabaseClient.auth.currentUser;
+//         if (user != null) {
+//           final profileUpdateResponse = await _supabaseClient.from('profiles').update({'has_set_password': true}).eq('id', user.id).select();
+//
+//           if (profileUpdateResponse.isNotEmpty) {
+//             _log.info('Updated user profile successfully');
+//           } else {
+//             _log.warning('Failed to update user profile');
+//           }
+//         }
+//         return true;
+//       }
+//       return false;
+//     } catch (e) {
+//       _log.severe('Error updating user password after OTP: $e');
+//       return false;
+//     }
+//   }
+//
+//   Future<void> requestPasswordResetOtp(String email) async {
+//     try {
+//       await _supabaseClient.auth.signInWithOtp(
+//         email: email,
+//         emailRedirectTo: kIsWeb ? 'http://localhost:3000/#/update-password' : 'io.supabase.flutter://login-callback/',
+//       );
+//       notifyListeners();
+//     } catch (e) {
+//       _log.severe('Error requesting password reset OTP: $e');
+//       rethrow;
+//     }
+//   }
+//
+//   Future<bool> checkIfPasswordIsSet() async {
+//     final user = _supabaseClient.auth.currentUser;
+//     if (user == null) return false;
+//
+//     try {
+//       final response = await _supabaseClient.from('profiles').select('has_set_password').eq('id', user.id).maybeSingle();
+//
+//       if (response != null && response.containsKey('has_set_password')) {
+//         return response['has_set_password'] as bool;
+//       }
+//     } catch (e) {
+//       _log.severe('Error checking if password is set: $e');
+//     }
+//
+//     return false;
+//   }
+//
+//   @override
+//   void dispose() {
+//     _authSubscription?.cancel();
+//     super.dispose();
+//   }
+// }
+//
+// // import 'dart:async';
+// //
+// // import 'package:flutter/foundation.dart';
+// // import 'package:logging/logging.dart';
+// // import 'package:supabase_flutter/supabase_flutter.dart';
+// //
+// // class AuthService with ChangeNotifier {
+// //   final SupabaseClient _supabaseClient;
+// //   final Logger _log = Logger('AuthService');
+// //
+// //   StreamSubscription? _authSubscription;
+// //
+// //   AuthService(this._supabaseClient) {
+// //     _initializeAuthListener();
+// //     _configureLogging();
+// //   }
+// //
+// //   void _configureLogging() {
+// //     Logger.root.level = Level.ALL;
+// //     Logger.root.onRecord.listen((record) {
+// //       debugPrint('${record.level.name}: ${record.time}: ${record.message}');
+// //     });
+// //   }
+// //
+// //   void _initializeAuthListener() {
+// //     _authSubscription = _supabaseClient.auth.onAuthStateChange.listen((AuthState data) {
+// //       _handleAuthStateChange(data);
+// //     });
+// //   }
+// //
+// //   void _handleAuthStateChange(AuthState data) {
+// //     final AuthChangeEvent event = data.event;
+// //     final Session? session = data.session;
+// //
+// //     _log.info('Auth Change Event: $event');
+// //     if (session != null) {
+// //       _log.info('Session: ${session.toJson()}');
+// //     }
+// //     notifyListeners();
+// //   }
+// //
+// //   User? get currentUser => _supabaseClient.auth.currentUser;
+// //
+// //   Future<void> signInWithEmailAndPassword(String email, String password) async {
+// //     try {
+// //       await _supabaseClient.auth.signInWithPassword(
+// //         email: email,
+// //         password: password,
+// //       );
+// //       notifyListeners();
+// //     } catch (e) {
+// //       _log.severe('Error during sign in with email and password: $e');
+// //       rethrow;
+// //     }
+// //   }
+// //
+// //   Future<void> signInWithOtp(String email) async {
+// //     try {
+// //       await _supabaseClient.auth.signInWithOtp(
+// //         email: email,
+// //         emailRedirectTo: 'io.supabase.flutter://login-callback/',
+// //       );
+// //       notifyListeners();
+// //     } catch (e) {
+// //       _log.severe('Error during sign in with OTP: $e');
+// //       rethrow;
+// //     }
+// //   }
+// //
+// //   Future<void> verifyOtp(String email, String token) async {
+// //     try {
+// //       await _supabaseClient.auth.verifyOTP(
+// //         email: email,
+// //         token: token,
+// //         type: OtpType.email,
+// //       );
+// //       notifyListeners();
+// //     } catch (e) {
+// //       _log.severe('Error during OTP verification: $e');
+// //       rethrow;
+// //     }
+// //   }
+// //
+// //   Future<void> signOut() async {
+// //     try {
+// //       await _supabaseClient.auth.signOut();
+// //       notifyListeners();
+// //     } catch (e) {
+// //       _log.severe('Error during sign out: $e');
+// //       rethrow;
+// //     }
+// //   }
+// //
+// //   Future<void> sendPasswordResetEmail(String email) async {
+// //     try {
+// //       await _supabaseClient.auth.resetPasswordForEmail(
+// //         email,
+// //         redirectTo: kIsWeb
+// //             ? 'http://localhost:3000/#/update-password' // Web URL
+// //             : 'io.supabase.flutter://login-callback/', // Mobile deep link URL
+// //       );
+// //       notifyListeners();
+// //     } catch (e) {
+// //       _log.severe('Error sending password reset email: $e');
+// //       rethrow;
+// //     }
+// //   }
+// //
+// //   // Future<void> sendPasswordResetEmail(String email) async {
+// //   //   try {
+// //   //     await _supabaseClient.auth.resetPasswordForEmail(
+// //   //       email,
+// //   //       redirectTo: kIsWeb
+// //   //           ? 'http://localhost:3000/#/update-password' // Web URL
+// //   //           : 'io.supabase.flutter://login-callback/', // Mobile deep link URL
+// //   //     );
+// //   //     notifyListeners();
+// //   //   } catch (e) {
+// //   //     _log.severe('Error sending password reset email: $e');
+// //   //     rethrow;
+// //   //   }
+// //   // }
+// //
+// //   // Future<bool> updateUserPasswordAfterOtp({required String password}) async {
+// //   //   try {
+// //   //     final updates = UserAttributes(password: password);
+// //   //     final response = await _supabaseClient.auth.updateUser(updates);
+// //   //     if (response.user != null) {
+// //   //       // Update the 'has_set_password' field in the 'profiles' table to true
+// //   //       final user = _supabaseClient.auth.currentUser;
+// //   //       if (user != null) {
+// //   //         final profileUpdateResponse = await _supabaseClient.from('profiles').update({'has_set_password': true}).eq('id', user.id).select();
+// //   //
+// //   //         if (profileUpdateResponse.isNotEmpty) {
+// //   //           _log.info('Updated user profile successfully');
+// //   //         } else {
+// //   //           _log.warning('Failed to update user profile');
+// //   //         }
+// //   //       }
+// //   //       return true;
+// //   //     }
+// //   //     return false;
+// //   //   } catch (e) {
+// //   //     _log.severe('Error updating user password after OTP: $e');
+// //   //     return false;
+// //   //   }
+// //   // }
+// //
+// //   Future<bool> updateUserPassword({required String password}) async {
+// //     try {
+// //       final updates = UserAttributes(password: password);
+// //       final response = await _supabaseClient.auth.updateUser(updates);
+// //       if (response.user != null) {
+// //         return true;
+// //       }
+// //       return false;
+// //     } catch (e) {
+// //       _log.severe('Error updating user password after OTP: $e');
+// //       return false;
+// //     }
+// //   }
+// //
+// //   Future<void> requestPasswordResetOtp(String email) async {
+// //     try {
+// //       await _supabaseClient.auth.signInWithOtp(
+// //         email: email,
+// //         emailRedirectTo: kIsWeb ? 'http://localhost:3000/#/update-password' : 'io.supabase.flutter://login-callback/',
+// //       );
+// //       notifyListeners();
+// //     } catch (e) {
+// //       _log.severe('Error requesting password reset OTP: $e');
+// //       rethrow;
+// //     }
+// //   }
+// //
+// //   Future<bool> checkIfPasswordIsSet() async {
+// //     final user = _supabaseClient.auth.currentUser;
+// //     if (user == null) return false;
+// //
+// //     try {
+// //       final response = await _supabaseClient.from('profiles').select('has_set_password').eq('id', user.id).maybeSingle();
+// //
+// //       if (response != null && response.containsKey('has_set_password')) {
+// //         return response['has_set_password'] as bool;
+// //       }
+// //     } catch (e) {
+// //       _log.severe('Error checking if password is set: $e');
+// //     }
+// //
+// //     return false;
+// //   }
+// //
+// //   @override
+// //   void dispose() {
+// //     _authSubscription?.cancel();
+// //     super.dispose();
+// //   }
+// // }
+    </document_content>
+  </document>
+  <document index="4">
+    <source>database.dart</source>
+    <document_content>
+import 'package:sollylabs_discover/database/services/connection_service.dart';
+import 'package:sollylabs_discover/database/services/invitation_service.dart';
+import 'package:sollylabs_discover/database/services/message_service.dart';
+import 'package:sollylabs_discover/database/services/profile_service.dart';
+import 'package:sollylabs_discover/database/services/project_permission_service.dart';
+import 'package:sollylabs_discover/database/services/project_service.dart';
+
+class Database {
+  final ProjectService projectService;
+  final ProjectPermissionService projectPermissionService;
+  final ProfileService profileService;
+  final InvitationService invitationService;
+  final ConnectionService connectionService;
+  final MessageService messageService;
+
+  Database({
+    required this.projectService,
+    required this.projectPermissionService,
+    required this.profileService,
+    required this.invitationService,
+    required this.connectionService,
+    required this.messageService,
+  });
+}
+    </document_content>
+  </document>
+  <document index="5">
+    <source>connection.dart</source>
+    <document_content>
+class Connection {
+  final String id;
+  final String user1Id;
+  final String user2Id;
+  final String userEmail; // Email of the other user in the connection
+
+  Connection({
+    required this.id,
+    required this.user1Id,
+    required this.user2Id,
+    required this.userEmail,
+  });
+
+  factory Connection.fromJson(Map<String, dynamic> json, String currentUserId) {
+    return Connection(
+      id: json['id'],
+      user1Id: json['user1_id'],
+      user2Id: json['user2_id'],
+      userEmail: json['user1_id'] == currentUserId ? json['user2']['email'] : json['user1']['email'],
+    );
+  }
+}
+
+// import 'package:uuid/uuid.dart';
+//
+// class Connection {
+//   final UuidValue id;
+//   final UuidValue user1Id;
+//   final UuidValue user2Id;
+//   final DateTime? createdAt;
+//   final DateTime? updatedAt;
+//
+//   Connection({
+//     required this.id,
+//     required this.user1Id,
+//     required this.user2Id,
+//     this.createdAt,
+//     this.updatedAt,
+//   });
+//
+//   factory Connection.fromJson(Map<String, dynamic> json) {
+//     return Connection(
+//       id: UuidValue.fromString(json['id']),
+//       user1Id: UuidValue.fromString(json['user1_id']),
+//       user2Id: UuidValue.fromString(json['user2_id']),
+//       createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
+//       updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
+//     );
+//   }
+//
+//   Map<String, dynamic> toJson() {
+//     return {
+//       'id': id.uuid,
+//       'user1_id': user1Id.uuid,
+//       'user2_id': user2Id.uuid,
+//       'created_at': createdAt?.toIso8601String(),
+//       'updated_at': updatedAt?.toIso8601String(),
+//     };
+//   }
+// }
+    </document_content>
+  </document>
+  <document index="6">
+    <source>connection_profile.dart</source>
+    <document_content>
+import 'package:uuid/uuid.dart';
+
+class ConnectionProfile {
+  final UuidValue connectionId;
+  final UuidValue userId;
+  final UuidValue otherUserId;
+  final DateTime createdAt;
+  final String userEmail;
+  final String userDisplayId;
+  final String userFullName;
+  final String userWebsite;
+  final String otherUserEmail;
+  final String otherUserDisplayId;
+  final String otherUserFullName;
+  final String otherUserWebsite;
+  final bool isBlocked; // ✅ New field to track blocked status
+
+  ConnectionProfile({
+    required this.connectionId,
+    required this.userId,
+    required this.otherUserId,
+    required this.createdAt,
+    required this.userEmail,
+    required this.userDisplayId,
+    required this.userFullName,
+    required this.userWebsite,
+    required this.otherUserEmail,
+    required this.otherUserDisplayId,
+    required this.otherUserFullName,
+    required this.otherUserWebsite,
+    required this.isBlocked,
+  });
+
+  factory ConnectionProfile.fromJson(Map<String, dynamic> json) {
+    return ConnectionProfile(
+      connectionId: UuidValue.fromString(json['connection_id']),
+      userId: UuidValue.fromString(json['user_id']),
+      otherUserId: UuidValue.fromString(json['other_user_id']),
+      createdAt: DateTime.parse(json['created_at']),
+      userEmail: json['user_email'] ?? '',
+      userDisplayId: json['user_display_id'] ?? '',
+      userFullName: json['user_full_name'] ?? '',
+      userWebsite: json['user_website'] ?? '',
+      otherUserEmail: json['other_user_email'] ?? '',
+      otherUserDisplayId: json['other_user_display_id'] ?? '',
+      otherUserFullName: json['other_user_full_name'] ?? '',
+      otherUserWebsite: json['other_user_website'] ?? '',
+      isBlocked: json['is_blocked'] ?? false, // ✅ Default to false if null
+    );
+  }
+}
+
+// import 'package:uuid/uuid.dart';
+//
+// class ConnectionProfile {
+//   final UuidValue connectionId;
+//   final UuidValue userId;
+//   final UuidValue otherUserId;
+//   final DateTime createdAt;
+//   final String? otherUserEmail;
+//   final String? otherUserDisplayId;
+//   final String? otherUserFullName;
+//   final String? otherUserWebsite;
+//   final bool isBlocked; // ✅ New field to track blocked status
+//
+//   ConnectionProfile({
+//     required this.connectionId,
+//     required this.userId,
+//     required this.otherUserId,
+//     required this.createdAt,
+//     this.otherUserEmail,
+//     this.otherUserDisplayId,
+//     this.otherUserFullName,
+//     this.otherUserWebsite,
+//     required this.isBlocked, // ✅ Now required in constructor
+//   });
+//
+//   factory ConnectionProfile.fromJson(Map<String, dynamic> json) {
+//     return ConnectionProfile(
+//       connectionId: UuidValue.fromString(json['connection_id']),
+//       userId: UuidValue.fromString(json['user_id']),
+//       otherUserId: UuidValue.fromString(json['other_user_id']),
+//       createdAt: DateTime.parse(json['created_at']),
+//       otherUserEmail: json['other_user_email'] ?? '',
+//       otherUserDisplayId: json['other_user_display_id'] ?? '',
+//       otherUserFullName: json['other_user_full_name'] ?? '',
+//       otherUserWebsite: json['other_user_website'] ?? '',
+//       isBlocked: json['is_blocked'] ?? false, // ✅ Ensure default value if null
+//     );
+//   }
+// }
+//
+// // import 'package:uuid/uuid.dart';
+// //
+// // class ConnectionProfile {
+// //   final UuidValue connectionId;
+// //   final UuidValue userId; // ✅ This replaces user1Id and user2Id
+// //   final UuidValue otherUserId;
+// //   final DateTime createdAt;
+// //   final String userEmail;
+// //   final String userDisplayId;
+// //   final String userFullName;
+// //   final String userWebsite;
+// //   final String otherUserEmail;
+// //   final String otherUserDisplayId;
+// //   final String otherUserFullName;
+// //   final String otherUserWebsite;
+// //
+// //   ConnectionProfile({
+// //     required this.connectionId,
+// //     required this.userId,
+// //     required this.otherUserId,
+// //     required this.createdAt,
+// //     required this.userEmail,
+// //     required this.userDisplayId,
+// //     required this.userFullName,
+// //     required this.userWebsite,
+// //     required this.otherUserEmail,
+// //     required this.otherUserDisplayId,
+// //     required this.otherUserFullName,
+// //     required this.otherUserWebsite,
+// //   });
+// //
+// //   factory ConnectionProfile.fromJson(Map<String, dynamic> json) {
+// //     return ConnectionProfile(
+// //       connectionId: UuidValue.fromString(json['connection_id']),
+// //       userId: UuidValue.fromString(json['user_id']),
+// //       otherUserId: UuidValue.fromString(json['other_user_id']),
+// //       createdAt: DateTime.parse(json['created_at']),
+// //       userEmail: json['user_email'] ?? '',
+// //       userDisplayId: json['user_display_id'] ?? '',
+// //       userFullName: json['user_full_name'] ?? '',
+// //       userWebsite: json['user_website'] ?? '',
+// //       otherUserEmail: json['other_user_email'] ?? '',
+// //       otherUserDisplayId: json['other_user_display_id'] ?? '',
+// //       otherUserFullName: json['other_user_full_name'] ?? '',
+// //       otherUserWebsite: json['other_user_website'] ?? '',
+// //     );
+// //   }
+// // }
+    </document_content>
+  </document>
+  <document index="7">
+    <source>invitation.dart</source>
+    <document_content>
+import 'package:uuid/uuid.dart';
+
+enum InvitationStatus {
+  pending,
+  accepted,
+  declined,
+}
+
+class Invitation {
+  final UuidValue id;
+  final UuidValue projectId;
+  final String senderId;
+  final String recipientEmail;
+  final String role;
+  final InvitationStatus status;
+  final DateTime createdAt;
+  final DateTime? updatedAt;
+
+  Invitation({required this.id, required this.projectId, required this.senderId, required this.recipientEmail, required this.role, required this.status, required this.createdAt, this.updatedAt});
+
+  factory Invitation.fromJson(Map<String, dynamic> json) {
+    return Invitation(
+      id: UuidValue.fromString(json['id']),
+      projectId: UuidValue.fromString(json['project_id']),
+      senderId: json['sender_id'],
+      recipientEmail: json['recipient_email'],
+      role: json['role'],
+      status: InvitationStatus.values.firstWhere((e) => e.toString().split('.').last == json['status']),
+      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id.uuid,
+      'project_id': projectId.uuid,
+      'sender_id': senderId,
+      'recipient_email': recipientEmail,
+      'role': role,
+      'status': status.toString().split('.').last,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
+    };
+  }
+}
+    </document_content>
+  </document>
+  <document index="8">
+    <source>message.dart</source>
+    <document_content>
+import 'package:uuid/uuid.dart';
+
+class Message {
+  final UuidValue id;
+  final UuidValue connectionId;
+  final UuidValue senderId;
+  final String? message;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  Message({
+    required this.id,
+    required this.connectionId,
+    required this.senderId,
+    this.message,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory Message.fromJson(Map<String, dynamic> json) {
+    return Message(
+      id: UuidValue.fromString(json['id']),
+      connectionId: UuidValue.fromString(json['connection_id']),
+      senderId: UuidValue.fromString(json['sender_id']),
+      message: json['message'],
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id.uuid,
+      'connection_id': connectionId.uuid,
+      'sender_id': senderId.uuid,
+      'message': message,
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
+    };
+  }
+}
+    </document_content>
+  </document>
+  <document index="9">
+    <source>profile.dart</source>
+    <document_content>
+import 'package:uuid/uuid.dart';
+
+class Profile {
+  final UuidValue id;
+  final DateTime? updatedAt;
+  final String? username;
+  final String? fullName;
+  final String? avatarUrl;
+  final String? website;
+  final String? displayId;
+  final String? email;
+  final bool isConnected; // ✅ New field
+
+  Profile({
+    required this.id,
+    this.updatedAt,
+    this.username,
+    this.fullName,
+    this.avatarUrl,
+    this.website,
+    this.displayId,
+    this.email,
+    this.isConnected = false, // ✅ Default to false
+  });
+
+  factory Profile.fromJson(Map<String, dynamic> json) {
+    return Profile(
+      id: UuidValue.fromString(json['id']),
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
+      username: json['username'],
+      fullName: json['full_name'],
+      avatarUrl: json['avatar_url'],
+      website: json['website'],
+      displayId: json['display_id'],
+      email: json['email'],
+      isConnected: json['is_connected'] ?? false, // ✅ Map from DB
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id.uuid,
+      'updated_at': updatedAt?.toIso8601String(),
+      'username': username,
+      'full_name': fullName,
+      'avatar_url': avatarUrl,
+      'website': website,
+      'display_id': displayId,
+      'email': email,
+      'is_connected': isConnected, // ✅ Include in JSON
+    };
+  }
+
+  // ✅ **Added copyWith Method**
+  Profile copyWith({
+    UuidValue? id,
+    DateTime? updatedAt,
+    String? username,
+    String? fullName,
+    String? avatarUrl,
+    String? website,
+    String? displayId,
+    String? email,
+    bool? isConnected,
+  }) {
+    return Profile(
+      id: id ?? this.id,
+      updatedAt: updatedAt ?? this.updatedAt,
+      username: username ?? this.username,
+      fullName: fullName ?? this.fullName,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      website: website ?? this.website,
+      displayId: displayId ?? this.displayId,
+      email: email ?? this.email,
+      isConnected: isConnected ?? this.isConnected,
+    );
+  }
+}
+
+// import 'package:uuid/uuid.dart';
+//
+// class Profile {
+//   final UuidValue id; // Primary key, which is also the user_id in auth.users
+//   final DateTime? updatedAt;
+//   final String? username;
+//   final String? fullName;
+//   final String? avatarUrl;
+//   final String? website;
+//   final String? displayId;
+//   final String? email;
+//
+//   Profile({
+//     required this.id,
+//     this.updatedAt,
+//     this.username,
+//     this.fullName,
+//     this.avatarUrl,
+//     this.website,
+//     this.displayId,
+//     this.email,
+//   });
+//
+//   factory Profile.fromJson(Map<String, dynamic> json) {
+//     return Profile(
+//       id: UuidValue.fromString(json['id']),
+//       updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
+//       username: json['username'],
+//       fullName: json['full_name'],
+//       avatarUrl: json['avatar_url'],
+//       website: json['website'],
+//       displayId: json['display_id'],
+//       email: json['email'],
+//     );
+//   }
+//
+//   Map<String, dynamic> toJson() {
+//     return {
+//       'id': id.uuid,
+//       'updated_at': updatedAt?.toIso8601String(),
+//       'username': username,
+//       'full_name': fullName,
+//       'avatar_url': avatarUrl,
+//       'website': website,
+//       'display_id': displayId,
+//       'email': email,
+//     };
+//   }
+//
+//   Profile copyWith({
+//     UuidValue? id,
+//     DateTime? updatedAt,
+//     String? username,
+//     String? fullName,
+//     String? avatarUrl,
+//     String? website,
+//     String? displayId,
+//     String? email,
+//   }) {
+//     return Profile(
+//       id: id ?? this.id,
+//       updatedAt: updatedAt ?? this.updatedAt,
+//       username: username ?? this.username,
+//       fullName: fullName ?? this.fullName,
+//       avatarUrl: avatarUrl ?? this.avatarUrl,
+//       website: website ?? this.website,
+//       displayId: displayId ?? this.displayId,
+//       email: email ?? this.email,
+//     );
+//   }
+// }
+    </document_content>
+  </document>
+  <document index="10">
+    <source>project.dart</source>
+    <document_content>
+import 'package:uuid/uuid.dart';
+
+class Project {
+  final UuidValue id;
+  final String projectName;
+  final String? projectInfo;
+  final String? shortcodeLink;
+  final int? projectSequenceNumber;
+  final UuidValue? createdBy;
+  final DateTime createdAt;
+  final UuidValue? updatedBy;
+  final DateTime? updatedAt;
+  final UuidValue? ownerId;
+
+  Project({
+    required this.id,
+    required this.projectName,
+    this.projectInfo,
+    this.shortcodeLink,
+    this.projectSequenceNumber,
+    this.createdBy,
+    required this.createdAt,
+    this.updatedBy,
+    this.updatedAt,
+    this.ownerId,
+  });
+
+  Project copyWith({
+    UuidValue? id,
+    String? projectName,
+    String? projectInfo,
+    String? shortcodeLink,
+    int? projectSequenceNumber,
+    UuidValue? createdBy,
+    DateTime? createdAt,
+    UuidValue? updatedBy,
+    DateTime? updatedAt,
+    UuidValue? ownerId,
+  }) {
+    return Project(
+      id: id ?? this.id,
+      projectName: projectName ?? this.projectName,
+      projectInfo: projectInfo ?? this.projectInfo,
+      shortcodeLink: shortcodeLink ?? this.shortcodeLink,
+      projectSequenceNumber: projectSequenceNumber ?? this.projectSequenceNumber,
+      createdBy: createdBy ?? this.createdBy,
+      createdAt: createdAt ?? this.createdAt,
+      updatedBy: updatedBy ?? this.updatedBy,
+      updatedAt: updatedAt ?? this.updatedAt,
+      ownerId: ownerId ?? this.ownerId,
+    );
+  }
+
+  factory Project.fromJson(Map<String, dynamic> json) {
+    return Project(
+      id: UuidValue.fromString(json['id']),
+      projectName: json['project_name'],
+      projectInfo: json['project_info'],
+      shortcodeLink: json['shortcode_link'],
+      projectSequenceNumber: json['project_sequence_number'],
+      createdBy: json['created_by'] != null ? UuidValue.fromString(json['created_by']) : null,
+      createdAt: DateTime.parse(json['created_at']),
+      updatedBy: json['updated_by'] != null ? UuidValue.fromString(json['updated_by']) : null,
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
+      ownerId: json['owner_id'] != null ? UuidValue.fromString(json['owner_id']) : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id.uuid,
+      'project_name': projectName,
+      'project_info': projectInfo,
+      'shortcode_link': shortcodeLink,
+      'project_sequence_number': projectSequenceNumber,
+      'created_by': createdBy?.uuid,
+      'created_at': createdAt.toIso8601String(),
+      'updated_by': updatedBy?.uuid,
+      'updated_at': updatedAt?.toIso8601String(),
+      'owner_id': ownerId?.uuid,
+    };
+  }
+}
+    </document_content>
+  </document>
+  <document index="11">
+    <source>project_permission.dart</source>
+    <document_content>
+import 'package:uuid/uuid.dart';
+
+class ProjectPermission {
+  final UuidValue id;
+  final UuidValue projectId;
+  final UuidValue userId;
+  final String role;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  ProjectPermission({
+    required this.id,
+    required this.projectId,
+    required this.userId,
+    required this.role,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory ProjectPermission.fromJson(Map<String, dynamic> json) {
+    return ProjectPermission(
+      id: UuidValue.fromString(json['id']),
+      projectId: UuidValue.fromString(json['project_id']),
+      userId: UuidValue.fromString(json['user_id']),
+      role: json['role'],
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id.uuid,
+      'project_id': projectId.uuid,
+      'user_id': userId.uuid,
+      'role': role,
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
+    };
+  }
+}
+    </document_content>
+  </document>
+  <document index="12">
+    <source>connection_service.dart</source>
+    <document_content>
+import 'package:sollylabs_discover/database/models/connection_profile.dart';
+import 'package:sollylabs_discover/global/globals.dart';
+
+class ConnectionService {
+  Future<List<ConnectionProfile>> getConnections(String userId, {String? searchQuery}) async {
+    var query = globals.supabaseClient.from('connection_profiles').select();
+
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      query = query.or('user_email.ilike.%$searchQuery%,other_user_email.ilike.%$searchQuery%');
+    }
+
+    final response = await query;
+
+    return response.map<ConnectionProfile>((data) => ConnectionProfile.fromJson(data)).toList();
+  }
+
+  Future<void> blockConnection(String connectionId) async {
+    final response = await globals.supabaseClient
+        .from('connections')
+        .update({'is_blocked': true}) // ✅ Correct column name
+        .eq('id', connectionId)
+        .select();
+
+    if (response.isEmpty) {
+      throw Exception('Failed to block user');
+    }
+  }
+
+  Future<void> unblockConnection(String connectionId) async {
+    final response = await globals.supabaseClient
+        .from('connections')
+        .update({'is_blocked': false}) // ✅ Correct column name
+        .eq('id', connectionId)
+        .select();
+
+    if (response.isEmpty) {
+      throw Exception('Failed to unblock user');
+    }
+  }
+
+  // Future<void> blockConnection(String connectionId) async {
+  //   final response = await globals.supabaseClient.from('connections').update({'blocked': true}).eq('id', connectionId).select();
+  //
+  //   if (response.isEmpty) {
+  //     throw Exception('Failed to block user');
+  //   }
+  // }
+  //
+  // Future<void> unblockConnection(String connectionId) async {
+  //   final response = await globals.supabaseClient.from('connections').update({'blocked': false}).eq('id', connectionId).select();
+  //
+  //   if (response.isEmpty) {
+  //     throw Exception('Failed to unblock user');
+  //   }
+  // }
+
+  Future<bool> removeConnection(String connectionId) async {
+    final response = await globals.supabaseClient.from('connections').delete().eq('id', connectionId).select();
+
+    return response.isNotEmpty; // Returns `true` if deletion was successful
+  }
+
+  Future<void> addConnection(String userId, String targetUserId) async {
+    final orderedUser1 = userId.compareTo(targetUserId) < 0 ? userId : targetUserId;
+    final orderedUser2 = userId.compareTo(targetUserId) < 0 ? targetUserId : userId;
+
+    final response = await globals.supabaseClient.from('connections').insert({
+      'user1_id': orderedUser1,
+      'user2_id': orderedUser2,
+    }).select();
+
+    if (response.isEmpty) {
+      throw Exception('Failed to send connection request');
+    }
+  }
+}
+    </document_content>
+  </document>
+  <document index="13">
+    <source>invitation_service.dart</source>
+    <document_content>
+import 'package:sollylabs_discover/database/models/invitation.dart';
+import 'package:sollylabs_discover/database/models/project_permission.dart';
+import 'package:sollylabs_discover/global/globals.dart';
+import 'package:uuid/uuid.dart';
+
+class InvitationService {
+  // Method to create an invitation
+  Future<Invitation> createInvitation({
+    required String projectId,
+    required String senderId,
+    required String recipientEmail,
+    required String role,
+  }) async {
+    final invitation = Invitation(
+      id: UuidValue.fromString(const Uuid().v4()),
+      projectId: UuidValue.fromString(projectId),
+      senderId: senderId,
+      recipientEmail: recipientEmail,
+      role: role,
+      status: InvitationStatus.pending,
+      createdAt: DateTime.now(),
+    );
+
+    final response = await globals.supabaseClient.from('invitations').insert(invitation.toJson()).select();
+    return Invitation.fromJson(response[0]);
+  }
+
+  // Method to get an invitation by ID
+  Future<Invitation> getInvitation(String id) async {
+    final response = await globals.supabaseClient.from('invitations').select().eq('id', id).single();
+    return Invitation.fromJson(response);
+  }
+
+  // Method to update the status of an invitation
+  Future<Invitation> updateInvitationStatus(String id, InvitationStatus status) async {
+    final response = await globals.supabaseClient.from('invitations').update({'status': status.toString().split('.').last}).eq('id', id).select();
+    return Invitation.fromJson(response[0]);
+  }
+
+  // Method to delete an invitation
+  Future<void> deleteInvitation(String id) async {
+    await globals.supabaseClient.from('invitations').delete().eq('id', id);
+  }
+
+  // Method to get all invitations for a user by email
+  Future<List<Invitation>> getInvitationsForUser(String email) async {
+    final response = await globals.supabaseClient.from('invitations').select().eq('recipient_email', email);
+    List<Invitation> invitations = [];
+    for (final invitation in response) {
+      invitations.add(Invitation.fromJson(invitation));
+    }
+    return invitations;
+  }
+
+  // Method to handle invitation acceptance
+  Future<void> acceptInvitation(String invitationId) async {
+    final invitation = await getInvitation(invitationId);
+    final projectPermission = ProjectPermission(
+      id: UuidValue.fromString(const Uuid().v4()),
+      projectId: invitation.projectId,
+      userId: UuidValue.fromString(globals.supabaseClient.auth.currentUser!.id),
+      role: invitation.role,
+      createdAt: DateTime.now(),
+    );
+    await createProjectPermission(projectPermission);
+    await updateInvitationStatus(invitationId, InvitationStatus.accepted);
+  }
+
+  Future<ProjectPermission> createProjectPermission(ProjectPermission projectPermission) async {
+    final response = await globals.supabaseClient.from('project_permissions').insert(projectPermission.toJson()).select();
+    return ProjectPermission.fromJson(response[0]);
+  }
+}
+    </document_content>
+  </document>
+  <document index="14">
+    <source>message_service.dart</source>
+    <document_content>
+import 'package:sollylabs_discover/database/models/message.dart';
+import 'package:sollylabs_discover/global/globals.dart';
+import 'package:uuid/uuid.dart';
+
+class MessageService {
+  Future<List<Message>> getMessages(String connectionId) async {
+    final response = await globals.supabaseClient.from('messages').select().eq('connection_id', connectionId).order('created_at', ascending: true);
+
+    List<Message> messages = [];
+    for (final message in response) {
+      messages.add(Message.fromJson(message));
+    }
+    return messages;
+  }
+
+  Future<Message> sendMessage(String connectionId, String senderId, String messageText) async {
+    final message = Message(
+      id: UuidValue.fromString(const Uuid().v4()),
+      connectionId: UuidValue.fromString(connectionId),
+      senderId: UuidValue.fromString(senderId),
+      message: messageText,
+      createdAt: DateTime.now(),
+    );
+
+    final response = await globals.supabaseClient.from('messages').insert(message.toJson()).select();
+
+    return Message.fromJson(response[0]);
+  }
+
+// Add other methods for managing messages as needed, like deleting or updating messages
+}
+    </document_content>
+  </document>
+  <document index="15">
+    <source>profile_service.dart</source>
+    <document_content>
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:path/path.dart' as path;
+import 'package:sollylabs_discover/database/models/profile.dart';
+import 'package:sollylabs_discover/global/globals.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class ProfileService {
+  Future<List<Profile>> getAllProfiles({required String currentUserId, String? searchQuery, int? limit, int offset = 0}) async {
+    var query = globals.supabaseClient.from('profiles').select('id, email, display_id, full_name, avatar_url, updated_at');
+
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      query = query.or('email.ilike.%$searchQuery%,display_id.ilike.%$searchQuery%,website.ilike.%$searchQuery%'); // ✅ Filter at DB level
+    }
+
+    final response = limit != null
+        ? await query.range(offset, offset + limit - 1) // ✅ Use correct offset for pagination
+        : await query;
+
+    return response.isNotEmpty ? response.map<Profile>((data) => Profile.fromJson(data)).toList() : [];
+  }
+  // Future<List<Profile>> getAllProfiles({required String currentUserId, String? searchQuery, int? limit, int offset = 0}) async {
+  //   var query = globals.supabaseClient.from('profiles').select('id, email, display_id, full_name, avatar_url, updated_at, connections!left(user1_id, user2_id)').neq('id', currentUserId); // ✅ Exclude current user
+  //
+  //   if (searchQuery != null && searchQuery.isNotEmpty) {
+  //     query = query.or('email.ilike.%$searchQuery%,display_id.ilike.%$searchQuery%,website.ilike.%$searchQuery%'); // ✅ Filter at DB level
+  //   }
+  //
+  //   final response = limit != null
+  //       ? await query.range(offset, offset + limit - 1) // ✅ Use correct offset for pagination
+  //       : await query;
+  //
+  //   return response.isNotEmpty
+  //       ? response.map<Profile>((data) {
+  //           return Profile.fromJson({
+  //             ...data,
+  //             'is_connected': data['is_connected'] != null, // ✅ If connection exists, mark as connected
+  //           });
+  //         }).toList()
+  //       : [];
+  // }
+
+  // Future<List<Profile>> getAllProfiles({String? searchQuery, int? limit, int offset = 0}) async {
+  //   var query = globals.supabaseClient.from('profiles').select('id, email, display_id, full_name, avatar_url, updated_at');
+  //
+  //   if (searchQuery != null && searchQuery.isNotEmpty) {
+  //     query = query.or('email.ilike.%$searchQuery%,display_id.ilike.%$searchQuery%,website.ilike.%$searchQuery%'); // ✅ Filter at DB level
+  //   }
+  //
+  //   final response = limit != null
+  //       ? await query.range(offset, offset + limit - 1) // ✅ Use correct offset for pagination
+  //       : await query;
+  //
+  //   return response.isNotEmpty ? response.map<Profile>((data) => Profile.fromJson(data)).toList() : [];
+  // }
+
+  /// ✅ **Upload User Avatar**
+  Future<String?> uploadAvatar(String userId, File imageFile) async {
+    try {
+      final fileExt = path.extension(imageFile.path);
+      final fileName = 'avatars/$userId/avatar$fileExt';
+
+      await globals.supabaseClient.storage.from('avatars').upload(fileName, imageFile, fileOptions: const FileOptions(cacheControl: '3600', upsert: true));
+
+      return globals.supabaseClient.storage.from('avatars').getPublicUrl(fileName);
+    } catch (e) {
+      debugPrint('Error uploading avatar: $e');
+      rethrow;
+    }
+  }
+
+  /// ✅ **Delete User Avatar**
+  Future<void> deleteAvatar(String userId) async {
+    try {
+      final pathToDelete = 'avatars/$userId/';
+      final files = await globals.supabaseClient.storage.from('avatars').list(path: pathToDelete);
+      final filesToDelete = files.map((file) => '$pathToDelete${file.name}').toList();
+
+      if (filesToDelete.isNotEmpty) {
+        await globals.supabaseClient.storage.from('avatars').remove(filesToDelete);
+      }
+    } catch (e) {
+      debugPrint('Error deleting avatar: $e');
+      rethrow;
+    }
+  }
+
+  /// ✅ **Get Current User Profile**
+  Future<Profile?> getProfile() async {
+    final user = globals.supabaseClient.auth.currentUser;
+    if (user == null) return null;
+
+    final response = await globals.supabaseClient.from('profiles').select().eq('id', user.id).maybeSingle();
+    return response != null ? Profile.fromJson(response) : null;
+  }
+
+  /// ✅ **Update Profile**
+  Future<void> updateProfile(Profile updatedProfile) async {
+    try {
+      await globals.supabaseClient.from('profiles').update(updatedProfile.toJson()).eq('id', updatedProfile.id.uuid);
+    } catch (e) {
+      debugPrint('Error updating user profile: $e');
+      rethrow;
+    }
+  }
+
+  /// ✅ **Check if Display ID is Unique**
+  Future<bool> isDisplayIdUnique(String displayId, String currentUserId) async {
+    final response = await globals.supabaseClient.from('profiles').select('id').eq('display_id', displayId).neq('id', currentUserId);
+    return response.isEmpty;
+  }
+}
+    </document_content>
+  </document>
+  <document index="16">
+    <source>project_permission_service.dart</source>
+    <document_content>
+import 'package:sollylabs_discover/database/models/project_permission.dart';
+import 'package:sollylabs_discover/global/globals.dart';
+
+class ProjectPermissionService {
+  Future<List<ProjectPermission>> getProjectPermissions(String projectId) async {
+    final response = await globals.supabaseClient.from('project_permissions').select().eq('project_id', projectId).order('created_at', ascending: false);
+    List<ProjectPermission> projectPermissions = [];
+    for (final projectPermission in response) {
+      projectPermissions.add(ProjectPermission.fromJson(projectPermission));
+    }
+    return projectPermissions;
+  }
+
+  Future<ProjectPermission> getProjectPermission(String id) async {
+    final response = await globals.supabaseClient.from('project_permissions').select().eq('id', id).single();
+    return ProjectPermission.fromJson(response);
+  }
+
+  Future<ProjectPermission> createProjectPermission(ProjectPermission projectPermission) async {
+    final response = await globals.supabaseClient.from('project_permissions').insert(projectPermission.toJson()).select();
+    return ProjectPermission.fromJson(response[0]);
+  }
+
+  Future<ProjectPermission> updateProjectPermission(ProjectPermission projectPermission) async {
+    final response = await globals.supabaseClient.from('project_permissions').update(projectPermission.toJson()).eq('id', projectPermission.id.uuid).select();
+    return ProjectPermission.fromJson(response[0]);
+  }
+
+  Future<void> deleteProjectPermission(String id) async {
+    await globals.supabaseClient.from('project_permissions').delete().eq('id', id);
+  }
+
+  Future<void> updateProjectPermissionRole(
+    String projectPermissionId,
+    String newRole,
+  ) async {
+    // Fetch the project permission
+    final projectPermission = await getProjectPermission(projectPermissionId);
+
+    // Fetch all project permissions with the 'owner' role for this project
+    final allOwners = await getProjectPermissionsByRole(projectPermission.projectId.uuid, 'owner');
+
+    // Prevent setting the last owner to another role
+    if (allOwners.length == 1 && allOwners[0].id == projectPermission.id && newRole != 'owner') {
+      throw Exception("Cannot remove the last owner of the project.");
+    }
+
+    // Update the project permission's role
+    await globals.supabaseClient.from('project_permissions').update({'role': newRole}).eq('id', projectPermissionId).select();
+  }
+
+  Future<List<ProjectPermission>> getProjectPermissionsByRole(
+    String projectId,
+    String role,
+  ) async {
+    final response = await globals.supabaseClient.from('project_permissions').select().eq('project_id', projectId).eq('role', role);
+    List<ProjectPermission> owners = [];
+    for (final projectPermission in response) {
+      owners.add(ProjectPermission.fromJson(projectPermission));
+    }
+    return owners;
+  }
+}
+    </document_content>
+  </document>
+  <document index="17">
+    <source>project_service.dart</source>
+    <document_content>
+import 'package:sollylabs_discover/database/models/project.dart';
+import 'package:sollylabs_discover/global/globals.dart';
+
+class ProjectService {
+  Future<List<Project>> getProjects() async {
+    final response = await globals.supabaseClient.from('project_list').select().order('created_at', ascending: false);
+    List<Project> projects = [];
+    for (final project in response) {
+      projects.add(Project.fromJson(project));
+    }
+    return projects;
+  }
+
+  Future<Project> getProject(String id) async {
+    final response = await globals.supabaseClient.from('project_list').select().eq('id', id).single();
+    return Project.fromJson(response);
+  }
+
+  Future<Project> createProject(Project project) async {
+    final user = globals.supabaseClient.auth.currentUser;
+    if (user == null) {
+      throw Exception('User not logged in');
+    }
+
+    final projectData = project.toJson();
+    projectData['created_by'] = user.id;
+    projectData['owner_id'] = user.id; // Set owner_id to current user's ID
+    projectData.remove('id'); // Remove the ID from the JSON
+
+    final response = await globals.supabaseClient.from('project_list').insert(projectData).select();
+
+    return Project.fromJson(response[0]);
+  }
+
+  Future<Project> updateProject(Project project) async {
+    final response = await globals.supabaseClient.from('project_list').update(project.toJson()).eq('id', project.id.uuid).select();
+    return Project.fromJson(response[0]);
+  }
+
+  Future<void> deleteProject(String id) async {
+    await globals.supabaseClient.from('project_list').delete().eq('id', id);
+  }
+}
+    </document_content>
+  </document>
+  <document index="18">
+    <source>globals.dart</source>
+    <document_content>
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+class Globals {
+  final SupabaseClient supabaseClient = Supabase.instance.client;
+}
+
+final globals = Globals();
+    </document_content>
+  </document>
+  <document index="19">
+    <source>community_page.dart</source>
+    <document_content>
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sollylabs_discover/auth/auth_service.dart';
+import 'package:sollylabs_discover/database/models/profile.dart';
+import 'package:sollylabs_discover/database/services/connection_service.dart';
+import 'package:sollylabs_discover/database/services/profile_service.dart';
+
+class CommunityPage extends StatefulWidget {
+  const CommunityPage({super.key});
+
+  @override
+  State<CommunityPage> createState() => _CommunityPageState();
+}
+
+class _CommunityPageState extends State<CommunityPage> {
+  late ProfileService _profileService;
+  late ConnectionService _connectionService;
+  late String _currentUserId;
+  late String _currentUserEmail;
+  List<Profile> _profiles = [];
+  Set<String> _connectedUserIds = {};
+  Set<String> _blockedUserIds = {}; // ✅ Store blocked users
+  bool _isLoading = true;
+  final TextEditingController _searchController = TextEditingController();
+
+  final int _limit = 5; // Load 5 profiles per request
+  int _offset = 0; // Track loaded profiles count
+  bool _hasMore = true;
+
+  @override
+  void initState() {
+    super.initState();
+    final authService = Provider.of<AuthService>(context, listen: false);
+    _profileService = Provider.of<ProfileService>(context, listen: false);
+    _connectionService = Provider.of<ConnectionService>(context, listen: false);
+    _currentUserId = authService.currentUser!.id;
+    _currentUserEmail = authService.currentUser!.email ?? 'No Email';
+
+    _fetchConnections();
+    _fetchProfiles();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  /// ✅ Fetch connections and blocked users
+  Future<void> _fetchConnections() async {
+    try {
+      final connections = await _connectionService.getConnections(_currentUserId);
+      setState(() {
+        _connectedUserIds = connections.map((c) => c.otherUserId.toString()).toSet();
+        _blockedUserIds = connections.where((c) => c.isBlocked).map((c) => c.otherUserId.toString()).toSet();
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: SelectableText('Error fetching connections: $e')),
+        );
+      }
+    }
+  }
+
+  /// ✅ Fetch profiles with pagination
+  Future<void> _fetchProfiles({bool isLoadMore = false}) async {
+    if (isLoadMore && !_hasMore) return; // Stop if no more profiles
+
+    if (!isLoadMore) _offset = 0; // ✅ Reset offset for new search
+
+    setState(() => _isLoading = true);
+    try {
+      final profiles = await _profileService.getAllProfiles(
+        searchQuery: _searchController.text,
+        limit: _limit,
+        offset: _offset,
+        currentUserId: _currentUserId,
+      );
+
+      setState(() {
+        if (isLoadMore) {
+          _profiles.addAll(profiles);
+        } else {
+          _profiles = profiles;
+        }
+
+        _offset += _limit;
+        _hasMore = profiles.length == _limit;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: SelectableText('Error fetching profiles: $e')),
+        );
+      }
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  /// ✅ Send connection request
+  Future<void> _sendConnectionRequest(String targetUserId) async {
+    try {
+      await _connectionService.addConnection(_currentUserId, targetUserId);
+
+      setState(() {
+        _connectedUserIds.add(targetUserId); // ✅ Update UI
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Connection Added!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error sending request: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Community')),
+      body: Column(
+        children: [
+          // ✅ Show current user's email at the top
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            color: Colors.blue[100],
+            child: Text(
+              'Your Email: $_currentUserEmail',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+
+          // ✅ Search Bar
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: const InputDecoration(
+                hintText: 'Search by email',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (_) => _fetchProfiles(isLoadMore: false),
+            ),
+          ),
+
+          if (_searchController.text.isNotEmpty)
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: TextButton(
+                  onPressed: () {
+                    _searchController.clear();
+                    _fetchProfiles(isLoadMore: false);
+                  },
+                  child: const Text('Clear Search'),
+                ),
+              ),
+            ),
+
+          // ✅ Profile List
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _profiles.isEmpty
+                    ? const Center(child: Text('No profiles found.'))
+                    : Column(
+                        children: [
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: _profiles.length,
+                              itemBuilder: (context, index) {
+                                final profile = _profiles[index];
+
+                                if (profile.id.toString() == _currentUserId) return const SizedBox.shrink();
+
+                                final bool isConnected = _connectedUserIds.contains(profile.id.toString());
+                                final bool isBlocked = _blockedUserIds.contains(profile.id.toString());
+
+                                return ListTile(
+                                  leading: profile.avatarUrl != null ? CircleAvatar(backgroundImage: NetworkImage(profile.avatarUrl!)) : const CircleAvatar(child: Icon(Icons.person)),
+                                  title: Text(profile.displayId ?? 'Unknown User'),
+                                  subtitle: Text(profile.email ?? 'No Email'),
+                                  trailing: isBlocked
+                                      ? const Text('Blocked', style: TextStyle(color: Colors.red))
+                                      : isConnected
+                                          ? const Text('Connected', style: TextStyle(color: Colors.green))
+                                          : ElevatedButton(
+                                              onPressed: () => _sendConnectionRequest(profile.id.toString()),
+                                              child: const Text('Connect'),
+                                            ),
+                                );
+                              },
+                            ),
+                          ),
+                          if (_hasMore) // ✅ Show "Load More" button if more profiles exist
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              child: ElevatedButton(
+                                onPressed: () => _fetchProfiles(isLoadMore: true),
+                                child: const Text('Load More'),
+                              ),
+                            ),
+                        ],
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// import 'package:flutter/material.dart';
+// import 'package:provider/provider.dart';
+// import 'package:sollylabs_discover/auth/auth_service.dart';
+// import 'package:sollylabs_discover/database/models/profile.dart';
+// import 'package:sollylabs_discover/database/services/connection_service.dart';
+// import 'package:sollylabs_discover/database/services/profile_service.dart';
+//
+// class CommunityPage extends StatefulWidget {
+//   const CommunityPage({super.key});
+//
+//   @override
+//   State<CommunityPage> createState() => _CommunityPageState();
+// }
+//
+// class _CommunityPageState extends State<CommunityPage> {
+//   late ProfileService _profileService;
+//   late ConnectionService _connectionService;
+//   late String _currentUserId;
+//   late String _currentUserEmail;
+//   List<Profile> _profiles = [];
+//   // Set<String> _connectedUserEmails = {}; // Store emails of connected users
+//   Set<String> _connectedUserId = {}; // Store emails of connected users
+//   bool _isLoading = true;
+//   final TextEditingController _searchController = TextEditingController();
+//
+//   final int _limit = 5; // Load 5 profiles per request
+//   int _offset = 0; // Track loaded profiles count
+//   bool _hasMore = true;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     final authService = Provider.of<AuthService>(context, listen: false);
+//     _profileService = Provider.of<ProfileService>(context, listen: false);
+//     _connectionService = Provider.of<ConnectionService>(context, listen: false);
+//     _currentUserId = authService.currentUser!.id;
+//     _currentUserEmail = authService.currentUser!.email ?? 'No Email';
+//
+//     _fetchConnections(); // ✅ Load connected users first
+//     _fetchProfiles(); // ✅ Load community profiles
+//   }
+//
+//   @override
+//   void dispose() {
+//     _searchController.dispose();
+//     super.dispose();
+//   }
+//
+//   Future<void> _fetchConnections() async {
+//     try {
+//       final connectionsProfile = await _connectionService.getConnections(_currentUserId);
+//       setState(() {
+//         _connectedUserId = connectionsProfile
+//             .map((c) => c.otherUserId.toString()) // Ensure non-null
+//             .toSet();
+//       });
+//     } catch (e) {
+//       if (mounted) {
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           SnackBar(content: SelectableText('Error fetching connections: $e')),
+//         );
+//       }
+//     }
+//   }
+//
+//   /// ✅ Fetch profiles with pagination
+//   Future<void> _fetchProfiles({bool isLoadMore = false}) async {
+//     if (isLoadMore && !_hasMore) return; // Stop if no more profiles
+//
+//     if (!isLoadMore) _offset = 0; // ✅ Reset offset for new search
+//
+//     setState(() => _isLoading = true);
+//     try {
+//       final profiles = await _profileService.getAllProfiles(searchQuery: _searchController.text, limit: _limit, offset: _offset, currentUserId: _currentUserId);
+//
+//       setState(() {
+//         if (isLoadMore) {
+//           _profiles.addAll(profiles); // ✅ Append new profiles
+//         } else {
+//           _profiles = profiles; // ✅ Initial search result
+//         }
+//
+//         _offset += _limit; // ✅ Move offset forward
+//         _hasMore = profiles.length == _limit; // ✅ Check if more profiles exist
+//       });
+//     } catch (e) {
+//       if (mounted) {
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           SnackBar(content: SelectableText('Error fetching profiles: $e')),
+//         );
+//       }
+//     } finally {
+//       setState(() => _isLoading = false);
+//     }
+//   }
+//
+//   /// ✅ Send connection request
+//   Future<void> _sendConnectionRequest(String targetUserId) async {
+//     try {
+//       await _connectionService.addConnection(_currentUserId, targetUserId);
+//
+//       setState(() {
+//         // _connectedUserEmails.add(targetUserId); // ✅ Update UI
+//         _connectedUserId.add(targetUserId);
+//       });
+//
+//       if (mounted) {
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           const SnackBar(content: Text('Connection Added!')),
+//         );
+//       }
+//     } catch (e) {
+//       if (mounted) {
+//         ScaffoldMessenger.of(context).showSnackBar(
+//           SnackBar(content: Text('Error sending request: $e')),
+//         );
+//       }
+//     }
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(title: const Text('Community')),
+//       body: Column(
+//         children: [
+//           // ✅ Show current user's email at the top
+//           Container(
+//             width: double.infinity,
+//             padding: const EdgeInsets.all(12),
+//             color: Colors.blue[100],
+//             child: Text('Your Email: $_currentUserEmail', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+//           ),
+//
+//           // ✅ Search Bar
+//           Padding(
+//             padding: const EdgeInsets.all(8.0),
+//             child: TextField(
+//               controller: _searchController,
+//               decoration: const InputDecoration(hintText: 'Search by email', prefixIcon: Icon(Icons.search), border: OutlineInputBorder()),
+//               onChanged: (_) => _fetchProfiles(isLoadMore: false),
+//             ),
+//           ),
+//
+//           if (_searchController.text.isNotEmpty)
+//             Align(
+//               alignment: Alignment.centerRight,
+//               child: Padding(
+//                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
+//                 child: TextButton(
+//                   onPressed: () {
+//                     _searchController.clear();
+//                     _fetchProfiles(isLoadMore: false);
+//                   },
+//                   child: const Text('Clear Search'),
+//                 ),
+//               ),
+//             ),
+//
+//           // ✅ Profile List
+//           Expanded(
+//             child: _isLoading
+//                 ? const Center(child: CircularProgressIndicator())
+//                 : _profiles.isEmpty
+//                     ? const Center(child: Text('No profiles found.'))
+//                     : Column(
+//                         children: [
+//                           Expanded(
+//                             child: ListView.builder(
+//                               itemCount: _profiles.length,
+//                               itemBuilder: (context, index) {
+//                                 final profile = _profiles[index];
+//
+//                                 if (profile.id.toString() == _currentUserId) return const SizedBox.shrink(); // ✅ Hide current user
+//                                 // if (profile.email == _currentUserEmail) return const SizedBox.shrink(); // ✅ Hide current user
+//
+//                                 // final bool isConnected = _connectedUserEmails.contains(profile.email);
+//                                 final bool isConnected = _connectedUserId.contains(profile.id.toString());
+//
+//                                 return ListTile(
+//                                   leading: profile.avatarUrl != null ? CircleAvatar(backgroundImage: NetworkImage(profile.avatarUrl!)) : const CircleAvatar(child: Icon(Icons.person)),
+//                                   title: Text(profile.displayId ?? 'Unknown User'),
+//                                   subtitle: Text(profile.email ?? 'No Email'),
+//                                   trailing: isConnected
+//                                       ? const Text('Connected', style: TextStyle(color: Colors.green))
+//                                       : ElevatedButton(
+//                                           onPressed: () => _sendConnectionRequest(profile.id.toString()),
+//                                           child: const Text('Connect'),
+//                                         ),
+//                                 );
+//                               },
+//                             ),
+//                           ),
+//                           if (_hasMore) // ✅ Show "Load More" button if more profiles exist
+//                             Padding(
+//                               padding: const EdgeInsets.symmetric(vertical: 10),
+//                               child: ElevatedButton(
+//                                 onPressed: () => _fetchProfiles(isLoadMore: true),
+//                                 child: const Text('Load More'),
+//                               ),
+//                             ),
+//                         ],
+//                       ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
+    </document_content>
+  </document>
+  <document index="20">
+    <source>connections_page.dart</source>
+    <document_content>
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sollylabs_discover/auth/auth_service.dart';
+import 'package:sollylabs_discover/database/models/connection_profile.dart';
+import 'package:sollylabs_discover/database/services/connection_service.dart';
+
+class ConnectionsPage extends StatefulWidget {
+  const ConnectionsPage({super.key});
+
+  @override
+  State<ConnectionsPage> createState() => _ConnectionsPageState();
+}
+
+class _ConnectionsPageState extends State<ConnectionsPage> with SingleTickerProviderStateMixin {
+  late ConnectionService _connectionService;
+  List<ConnectionProfile> _connections = [];
+  List<ConnectionProfile> _blockedConnections = [];
+  bool _isLoading = true;
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _connectionService = Provider.of<ConnectionService>(context, listen: false);
+    _tabController = TabController(length: 2, vsync: this);
+    _fetchConnections();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchConnections() async {
+    setState(() => _isLoading = true);
+    try {
+      final userId = Provider.of<AuthService>(context, listen: false).currentUser!.id;
+      final connections = await _connectionService.getConnections(userId);
+
+      setState(() {
+        _connections = connections.where((c) => !c.isBlocked).toList();
+        _blockedConnections = connections.where((c) => c.isBlocked).toList();
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error fetching connections: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _blockConnection(String connectionId) async {
+    try {
+      await _connectionService.blockConnection(connectionId);
+      setState(() {
+        _connections.removeWhere((c) => c.connectionId.toString() == connectionId);
+      });
+      _fetchConnections();
+    } catch (e) {
+      _showErrorSnackBar('Error blocking user: $e');
+    }
+  }
+
+  Future<void> _unblockConnection(String connectionId) async {
+    try {
+      await _connectionService.unblockConnection(connectionId);
+      setState(() {
+        _blockedConnections.removeWhere((c) => c.connectionId.toString() == connectionId);
+      });
+      _fetchConnections();
+    } catch (e) {
+      _showErrorSnackBar('Error unblocking user: $e');
+    }
+  }
+
+  Future<void> _confirmRemoveConnection(String connectionId) async {
+    try {
+      await _connectionService.removeConnection(connectionId);
+      setState(() {
+        _connections.removeWhere((c) => c.connectionId.toString() == connectionId);
+        _blockedConnections.removeWhere((c) => c.connectionId.toString() == connectionId);
+      });
+
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connection removed successfully')));
+    } catch (e) {
+      _showErrorSnackBar('Error removing connection: $e');
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
+  Widget _buildConnectionList(List<ConnectionProfile> connections, bool isBlockedList) {
+    if (connections.isEmpty) {
+      return const Center(child: Text('No connections found.'));
+    }
+
+    return ListView.builder(
+      itemCount: connections.length,
+      itemBuilder: (context, index) {
+        final connection = connections[index];
+        return ListTile(
+          title: Text(connection.otherUserEmail),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (connection.otherUserDisplayId.isNotEmpty == true) Text('Display ID: ${connection.otherUserDisplayId}'),
+              if (connection.otherUserFullName.isNotEmpty == true) Text('Full Name: ${connection.otherUserFullName}'),
+              if (connection.otherUserWebsite.isNotEmpty == true) Text('Website: ${connection.otherUserWebsite}'),
+            ],
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isBlockedList)
+                IconButton(
+                  icon: const Icon(Icons.lock_open, color: Colors.green),
+                  onPressed: () => _unblockConnection(connection.connectionId.toString()),
+                )
+              else ...[
+                IconButton(
+                  icon: const Icon(Icons.block, color: Colors.red),
+                  onPressed: () => _blockConnection(connection.connectionId.toString()),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.remove_circle, color: Colors.grey),
+                  onPressed: () => _confirmRemoveConnection(connection.connectionId.toString()),
+                ),
+              ]
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Connections'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'Active Connections'),
+            Tab(text: 'Blocked Users'),
+          ],
+        ),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildConnectionList(_connections, false), // Active connections
+                _buildConnectionList(_blockedConnections, true), // Blocked connections
+              ],
+            ),
+    );
+  }
+}
+    </document_content>
+  </document>
+  <document index="21">
+    <source>create_password_page.dart</source>
+    <document_content>
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sollylabs_discover/auth/auth_service.dart';
+
+// Define the type alias
+typedef CreatePasswordWidgetState = State<CreatePasswordPage>;
+
+class CreatePasswordPage extends StatefulWidget {
+  const CreatePasswordPage({super.key});
+
+  @override
+  CreatePasswordWidgetState createState() => _CreatePasswordPageState();
+}
+
+class _CreatePasswordPageState extends State<CreatePasswordPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool _showPassword = false;
+  bool _showConfirmPassword = false;
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Create Password'),
+      ),
+      body: Form(
+        key: _formKey,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextFormField(
+                controller: _passwordController,
+                obscureText: !_showPassword,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  hintText: 'Enter your password',
+                  suffixIcon: IconButton(
+                    icon: Icon(_showPassword ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () {
+                      setState(() {
+                        _showPassword = !_showPassword;
+                      });
+                    },
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a password';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _confirmPasswordController,
+                obscureText: !_showConfirmPassword,
+                decoration: InputDecoration(
+                  labelText: 'Confirm Password',
+                  hintText: 'Confirm your password',
+                  suffixIcon: IconButton(
+                    icon: Icon(_showConfirmPassword ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () {
+                      setState(() {
+                        _showConfirmPassword = !_showConfirmPassword;
+                      });
+                    },
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please confirm your password';
+                  }
+                  if (value != _passwordController.text) {
+                    return 'Passwords do not match';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _isLoading
+                    ? null
+                    : () async {
+                        if (_formKey.currentState!.validate()) {
+                          setState(() {
+                            _isLoading = true;
+                          });
+
+                          final authService = Provider.of<AuthService>(context, listen: false);
+                          final messenger = ScaffoldMessenger.of(context);
+
+                          try {
+                            final isSuccess = await authService.updateUserPassword(
+                              password: _passwordController.text,
+                            );
+
+                            if (isSuccess) {
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Password created successfully!'),
+                                ),
+                              );
+                              if (context.mounted) {
+                                Navigator.of(context).popUntil((route) => route.isFirst);
+                              }
+                            } else {
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Failed to create password.'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text('An error occurred: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          } finally {
+                            setState(() {
+                              _isLoading = false;
+                            });
+                          }
+                        }
+                      },
+                child: _isLoading ? const CircularProgressIndicator() : const Text('Create Password'),
+              ),
+              const SizedBox(height: 20),
+              TextButton(
+                onPressed: () {
+                  // Navigate to AccountPage directly
+                  Navigator.of(context).pushReplacementNamed('/account');
+                },
+                child: const Text('Skip'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+// import 'package:flutter/material.dart';
+// import 'package:provider/provider.dart';
+// import 'package:sollylabs_discover/auth/auth_service.dart';
+//
+// class CreatePasswordPage extends StatefulWidget {
+//   const CreatePasswordPage({super.key});
+//
+//   @override
+//   CreatePasswordPageState createState() => CreatePasswordPageState();
+// }
+//
+// class CreatePasswordPageState extends State<CreatePasswordPage> {
+//   final _formKey = GlobalKey<FormState>();
+//   final _passwordController = TextEditingController();
+//   final _confirmPasswordController = TextEditingController();
+//   bool _showPassword = false;
+//   bool _showConfirmPassword = false;
+//   bool _isLoading = false;
+//
+//   @override
+//   void dispose() {
+//     _passwordController.dispose();
+//     _confirmPasswordController.dispose();
+//     super.dispose();
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('Create Password'),
+//       ),
+//       body: Form(
+//         key: _formKey,
+//         child: Padding(
+//           padding: const EdgeInsets.all(16.0),
+//           child: Column(
+//             mainAxisAlignment: MainAxisAlignment.center,
+//             children: [
+//               TextFormField(
+//                 controller: _passwordController,
+//                 obscureText: !_showPassword,
+//                 decoration: InputDecoration(
+//                   labelText: 'Password',
+//                   hintText: 'Enter your password',
+//                   suffixIcon: IconButton(
+//                     icon: Icon(_showPassword ? Icons.visibility : Icons.visibility_off),
+//                     onPressed: () {
+//                       setState(() {
+//                         _showPassword = !_showPassword;
+//                       });
+//                     },
+//                   ),
+//                 ),
+//                 validator: (value) {
+//                   if (value == null || value.isEmpty) {
+//                     return 'Please enter a password';
+//                   }
+//                   return null;
+//                 },
+//               ),
+//               const SizedBox(height: 20),
+//               TextFormField(
+//                 controller: _confirmPasswordController,
+//                 obscureText: !_showConfirmPassword,
+//                 decoration: InputDecoration(
+//                   labelText: 'Confirm Password',
+//                   hintText: 'Confirm your password',
+//                   suffixIcon: IconButton(
+//                     icon: Icon(_showConfirmPassword ? Icons.visibility : Icons.visibility_off),
+//                     onPressed: () {
+//                       setState(() {
+//                         _showConfirmPassword = !_showConfirmPassword;
+//                       });
+//                     },
+//                   ),
+//                 ),
+//                 validator: (value) {
+//                   if (value == null || value.isEmpty) {
+//                     return 'Please confirm your password';
+//                   }
+//                   if (value != _passwordController.text) {
+//                     return 'Passwords do not match';
+//                   }
+//                   return null;
+//                 },
+//               ),
+//               const SizedBox(height: 20),
+//               ElevatedButton(
+//                 onPressed: _isLoading
+//                     ? null
+//                     : () async {
+//                         if (_formKey.currentState!.validate()) {
+//                           setState(() {
+//                             _isLoading = true;
+//                           });
+//
+//                           final authService = Provider.of<AuthService>(context, listen: false);
+//                           final messenger = ScaffoldMessenger.of(context);
+//
+//                           try {
+//                             // Assuming you have a method in AuthService to update user's password
+//                             final isSuccess = await authService.updateUserPasswordAfterOtp(
+//                               password: _passwordController.text,
+//                             );
+//
+//                             if (isSuccess) {
+//                               messenger.showSnackBar(
+//                                 const SnackBar(
+//                                   content: Text('Password created successfully!'),
+//                                 ),
+//                               );
+//                               // Navigate to the AccountPage or other appropriate page
+//                               if (context.mounted) {
+//                                 Navigator.of(context).popUntil((route) => route.isFirst);
+//                               }
+//                             } else {
+//                               messenger.showSnackBar(
+//                                 const SnackBar(
+//                                   content: Text('Failed to create password.'),
+//                                   backgroundColor: Colors.red,
+//                                 ),
+//                               );
+//                             }
+//                           } catch (e) {
+//                             messenger.showSnackBar(
+//                               SnackBar(
+//                                 content: Text('An error occurred: $e'),
+//                                 backgroundColor: Colors.red,
+//                               ),
+//                             );
+//                           } finally {
+//                             setState(() {
+//                               _isLoading = false;
+//                             });
+//                           }
+//                         }
+//                       },
+//                 child: _isLoading ? const CircularProgressIndicator() : const Text('Create Password'),
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+    </document_content>
+  </document>
+  <document index="22">
+    <source>dashboard_page.dart</source>
+    <document_content>
+import 'package:flutter/material.dart';
+import 'package:sollylabs_discover/pages/account/account_page.dart';
+import 'package:sollylabs_discover/pages/connections_page.dart';
+
+import 'community_page.dart';
+
+class DashboardPage extends StatelessWidget {
+  const DashboardPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Dashboard'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ElevatedButton.icon(
+              icon: const Icon(Icons.people),
+              label: const Text('Connections'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ConnectionsPage(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.account_circle),
+              label: const Text('Account'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AccountPage(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.group),
+              label: const Text('Community'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CommunityPage()),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// import 'package:flutter/material.dart';
+// import 'package:sollylabs_discover/pages/account/account_page.dart';
+//
+// class DashboardPage extends StatelessWidget {
+//   const DashboardPage({super.key});
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('Dashboard'),
+//       ),
+//       drawer: Drawer(
+//         child: ListView(
+//           padding: EdgeInsets.zero,
+//           children: [
+//             const DrawerHeader(
+//               decoration: BoxDecoration(
+//                 color: Colors.blue,
+//               ),
+//               child: Text(
+//                 'Dashboard Menu',
+//                 style: TextStyle(
+//                   color: Colors.white,
+//                   fontSize: 24,
+//                 ),
+//               ),
+//             ),
+//             ListTile(
+//               leading: const Icon(Icons.account_circle),
+//               title: const Text('Account'),
+//               onTap: () {
+//                 Navigator.pop(context); // Close the drawer
+//                 Navigator.push(
+//                   context,
+//                   MaterialPageRoute(
+//                     builder: (context) => const AccountPage(),
+//                   ),
+//                 );
+//               },
+//             ),
+//             ListTile(
+//               leading: const Icon(Icons.people),
+//               title: const Text('Connections'),
+//               onTap: () {
+//                 Navigator.pop(context); // Close the drawer
+//                 Navigator.pushNamed(context, '/connections'); // Navigate using route
+//               },
+//             ),
+//           ],
+//         ),
+//       ),
+//       body: const Center(
+//         child: Text('Welcome to the Dashboard!'),
+//       ),
+//     );
+//   }
+// }
+    </document_content>
+  </document>
+  <document index="23">
+    <source>login_page.dart</source>
+    <document_content>
+import 'package:flutter/material.dart';
+import 'package:sollylabs_discover/widgets/sign_in_form.dart';
+
+class LoginPage extends StatelessWidget {
+  const LoginPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Login"),
+      ),
+      body: const Center(
+        child: SignInForm(),
+      ),
+    );
+  }
+}
+    </document_content>
+  </document>
+  <document index="24">
+    <source>otp_page.dart</source>
+    <document_content>
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sollylabs_discover/auth/auth_service.dart';
+import 'package:sollylabs_discover/pages/update_password_after_reset_page.dart';
+
+class OtpPage extends StatefulWidget {
+  final String email;
+  final bool isResetPassword;
+
+  const OtpPage({
+    required this.email,
+    this.isResetPassword = false,
+    super.key,
+  });
+
+  @override
+  OtpPageState createState() => OtpPageState();
+}
+
+class OtpPageState extends State<OtpPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _otpController = TextEditingController();
+  bool _isLoading = false; // Add loading state
+
+  @override
+  void dispose() {
+    _otpController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("OTP Verification"),
+      ),
+      body: Form(
+        key: _formKey,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("Enter OTP sent to: ${widget.email}"),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _otpController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'OTP',
+                  hintText: 'Enter OTP',
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter the OTP';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _isLoading
+                    ? null // Disable button while loading
+                    : () async {
+                        if (_formKey.currentState!.validate()) {
+                          setState(() {
+                            _isLoading = true; // Start loading
+                          });
+
+                          final authService = Provider.of<AuthService>(context, listen: false);
+                          final messenger = ScaffoldMessenger.of(context);
+                          final navigator = Navigator.of(context);
+
+                          try {
+                            if (widget.isResetPassword) {
+                              await authService.verifyOtp(
+                                widget.email,
+                                _otpController.text,
+                              );
+                              if (mounted) {
+                                navigator.push(
+                                  MaterialPageRoute(
+                                    builder: (context) => const UpdatePasswordAfterResetPage(),
+                                  ),
+                                );
+                              }
+                            } else {
+                              await authService.verifyOtp(
+                                widget.email,
+                                _otpController.text,
+                              );
+                              if (mounted) {
+                                navigator.pop();
+                              }
+                            }
+                          } catch (e) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text('Error verifying OTP: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          } finally {
+                            setState(() {
+                              _isLoading = false; // Stop loading
+                            });
+                          }
+                        }
+                      },
+                child: _isLoading
+                    ? const CircularProgressIndicator() // Show indicator
+                    : const Text("Verify OTP"),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// import 'package:flutter/material.dart';
+// import 'package:provider/provider.dart';
+// import 'package:sollylabs_discover/auth/auth_service.dart';
+// import 'package:sollylabs_discover/pages/update_password_after_reset_page.dart';
+//
+// class OtpPage extends StatefulWidget {
+//   final String email;
+//   final bool isResetPassword;
+//
+//   const OtpPage({
+//     required this.email,
+//     this.isResetPassword = false,
+//     super.key,
+//   });
+//
+//   @override
+//   OtpPageState createState() => OtpPageState();
+// }
+//
+// class OtpPageState extends State<OtpPage> {
+//   final _formKey = GlobalKey<FormState>();
+//   final _otpController = TextEditingController();
+//   bool _isLoading = false; // Add loading state
+//
+//   @override
+//   void dispose() {
+//     _otpController.dispose();
+//     super.dispose();
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text("OTP Verification"),
+//       ),
+//       body: Form(
+//         key: _formKey,
+//         child: Padding(
+//           padding: const EdgeInsets.all(16.0),
+//           child: Column(
+//             mainAxisAlignment: MainAxisAlignment.center,
+//             children: [
+//               Text("Enter OTP sent to: ${widget.email}"),
+//               const SizedBox(height: 20),
+//               TextFormField(
+//                 controller: _otpController,
+//                 keyboardType: TextInputType.number,
+//                 decoration: const InputDecoration(
+//                   labelText: 'OTP',
+//                   hintText: 'Enter OTP',
+//                 ),
+//                 validator: (value) {
+//                   if (value == null || value.isEmpty) {
+//                     return 'Please enter the OTP';
+//                   }
+//                   return null;
+//                 },
+//               ),
+//               const SizedBox(height: 20),
+//               ElevatedButton(
+//                 onPressed: _isLoading
+//                     ? null // Disable button while loading
+//                     : () async {
+//                         if (_formKey.currentState!.validate()) {
+//                           setState(() {
+//                             _isLoading = true; // Start loading
+//                           });
+//
+//                           final authService = Provider.of<AuthService>(context, listen: false);
+//                           final messenger = ScaffoldMessenger.of(context);
+//                           final navigator = Navigator.of(context);
+//
+//                           try {
+//                             if (widget.isResetPassword) {
+//                               // Verify OTP for password reset
+//                               final isVerified = await authService.verifyPasswordResetOtp(
+//                                 email: widget.email,
+//                                 otp: _otpController.text,
+//                               );
+//                               if (isVerified) {
+//                                 // Navigate to UpdatePasswordAfterResetPage
+//                                 if (mounted) {
+//                                   navigator.push(
+//                                     MaterialPageRoute(
+//                                       builder: (context) => const UpdatePasswordAfterResetPage(),
+//                                     ),
+//                                   );
+//                                 }
+//                               } else {
+//                                 messenger.showSnackBar(
+//                                   const SnackBar(
+//                                     content: Text('Incorrect OTP'),
+//                                   ),
+//                                 );
+//                               }
+//                             } else {
+//                               await authService.verifyOtp(
+//                                 widget.email,
+//                                 _otpController.text,
+//                               );
+//                               if (mounted) {
+//                                 navigator.pop();
+//                               }
+//                             }
+//                           } catch (e) {
+//                             messenger.showSnackBar(
+//                               SnackBar(
+//                                 content: Text('Error verifying OTP: $e'),
+//                                 backgroundColor: Colors.red,
+//                               ),
+//                             );
+//                           } finally {
+//                             setState(() {
+//                               _isLoading = false; // Stop loading
+//                             });
+//                           }
+//                         }
+//                       },
+//                 child: _isLoading
+//                     ? const CircularProgressIndicator() // Show indicator
+//                     : const Text("Verify OTP"),
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+//
+// // import 'package:flutter/material.dart';
+// // import 'package:provider/provider.dart';
+// // import 'package:sollylabs_discover/auth/auth_service.dart';
+// //
+// // class OtpPage extends StatefulWidget {
+// //   final String email;
+// //   final bool isResetPassword; // Add this parameter
+// //
+// //   const OtpPage({
+// //     required this.email,
+// //     this.isResetPassword = false, // Default value is false
+// //     super.key,
+// //   });
+// //
+// //   @override
+// //   OtpPageState createState() => OtpPageState();
+// // }
+// //
+// // class OtpPageState extends State<OtpPage> {
+// //   final _formKey = GlobalKey<FormState>();
+// //   final _otpController = TextEditingController();
+// //   bool _isLoading = false; // Add loading state
+// //
+// //   @override
+// //   void dispose() {
+// //     _otpController.dispose();
+// //     super.dispose();
+// //   }
+// //
+// //   @override
+// //   Widget build(BuildContext context) {
+// //     return Scaffold(
+// //       appBar: AppBar(
+// //         title: const Text("OTP Verification"),
+// //       ),
+// //       body: Form(
+// //         key: _formKey,
+// //         child: Padding(
+// //           padding: const EdgeInsets.all(16.0),
+// //           child: Column(
+// //             mainAxisAlignment: MainAxisAlignment.center,
+// //             children: [
+// //               Text("Enter OTP sent to: ${widget.email}"),
+// //               const SizedBox(height: 20),
+// //               TextFormField(
+// //                 controller: _otpController,
+// //                 keyboardType: TextInputType.number,
+// //                 decoration: const InputDecoration(
+// //                   labelText: 'OTP',
+// //                   hintText: 'Enter OTP',
+// //                 ),
+// //                 validator: (value) {
+// //                   if (value == null || value.isEmpty) {
+// //                     return 'Please enter the OTP';
+// //                   }
+// //                   return null;
+// //                 },
+// //               ),
+// //               const SizedBox(height: 20),
+// //               ElevatedButton(
+// //                 onPressed: _isLoading
+// //                     ? null // Disable button while loading
+// //                     : () async {
+// //                         if (_formKey.currentState!.validate()) {
+// //                           setState(() {
+// //                             _isLoading = true; // Start loading
+// //                           });
+// //
+// //                           final authService = Provider.of<AuthService>(context, listen: false);
+// //                           final messenger = ScaffoldMessenger.of(context);
+// //                           final navigator = Navigator.of(context);
+// //
+// //                           try {
+// //                             await authService.verifyOtp(
+// //                               widget.email,
+// //                               _otpController.text,
+// //                             );
+// //                             if (mounted) {
+// //                               navigator.pop();
+// //                             }
+// //                           } catch (e) {
+// //                             messenger.showSnackBar(
+// //                               SnackBar(
+// //                                 content: Text('Error verifying OTP: $e'),
+// //                                 backgroundColor: Colors.red,
+// //                               ),
+// //                             );
+// //                           } finally {
+// //                             setState(() {
+// //                               _isLoading = false; // Stop loading
+// //                             });
+// //                           }
+// //                         }
+// //                       },
+// //                 child: _isLoading
+// //                     ? const CircularProgressIndicator() // Show indicator
+// //                     : const Text("Verify OTP"),
+// //               ),
+// //             ],
+// //           ),
+// //         ),
+// //       ),
+// //     );
+// //   }
+// // }
+// //
+// // // import 'package:flutter/material.dart';
+// // // import 'package:provider/provider.dart';
+// // // import 'package:sollylabs_discover/auth/auth_service.dart';
+// // //
+// // // class OtpPage extends StatefulWidget {
+// // //   final String email;
+// // //
+// // //   const OtpPage({required this.email, super.key});
+// // //
+// // //   @override
+// // //   OtpPageState createState() => OtpPageState();
+// // // }
+// // //
+// // // class OtpPageState extends State<OtpPage> {
+// // //   final _formKey = GlobalKey<FormState>();
+// // //   final _otpController = TextEditingController();
+// // //   bool _isLoading = false; // Add loading state
+// // //
+// // //   @override
+// // //   void dispose() {
+// // //     _otpController.dispose();
+// // //     super.dispose();
+// // //   }
+// // //
+// // //   @override
+// // //   Widget build(BuildContext context) {
+// // //     return Scaffold(
+// // //       appBar: AppBar(
+// // //         title: const Text("OTP Verification"),
+// // //       ),
+// // //       body: Form(
+// // //         key: _formKey,
+// // //         child: Padding(
+// // //           padding: const EdgeInsets.all(16.0),
+// // //           child: Column(
+// // //             mainAxisAlignment: MainAxisAlignment.center,
+// // //             children: [
+// // //               Text("Enter OTP sent to: ${widget.email}"),
+// // //               const SizedBox(height: 20),
+// // //               TextFormField(
+// // //                 controller: _otpController,
+// // //                 keyboardType: TextInputType.number,
+// // //                 decoration: const InputDecoration(
+// // //                   labelText: 'OTP',
+// // //                   hintText: 'Enter OTP',
+// // //                 ),
+// // //                 validator: (value) {
+// // //                   if (value == null || value.isEmpty) {
+// // //                     return 'Please enter the OTP';
+// // //                   }
+// // //                   return null;
+// // //                 },
+// // //               ),
+// // //               const SizedBox(height: 20),
+// // //               ElevatedButton(
+// // //                 onPressed: _isLoading
+// // //                     ? null // Disable button while loading
+// // //                     : () async {
+// // //                         if (_formKey.currentState!.validate()) {
+// // //                           setState(() {
+// // //                             _isLoading = true; // Start loading
+// // //                           });
+// // //
+// // //                           final authService = Provider.of<AuthService>(context, listen: false);
+// // //                           final messenger = ScaffoldMessenger.of(context);
+// // //                           final navigator = Navigator.of(context);
+// // //
+// // //                           try {
+// // //                             await authService.verifyOtp(
+// // //                               widget.email,
+// // //                               _otpController.text,
+// // //                             );
+// // //                             if (mounted) {
+// // //                               navigator.pop();
+// // //                             }
+// // //                           } catch (e) {
+// // //                             messenger.showSnackBar(
+// // //                               SnackBar(
+// // //                                 content: Text('Error verifying OTP: $e'),
+// // //                                 backgroundColor: Colors.red,
+// // //                               ),
+// // //                             );
+// // //                           } finally {
+// // //                             setState(() {
+// // //                               _isLoading = false; // Stop loading
+// // //                             });
+// // //                           }
+// // //                         }
+// // //                       },
+// // //                 child: _isLoading
+// // //                     ? const CircularProgressIndicator() // Show indicator
+// // //                     : const Text("Verify OTP"),
+// // //               ),
+// // //             ],
+// // //           ),
+// // //         ),
+// // //       ),
+// // //     );
+// // //   }
+// // // }
+// // //
+// // // // import 'package:flutter/material.dart';
+// // // // import 'package:provider/provider.dart';
+// // // // import 'package:sollylabs_discover/auth/auth_service.dart';
+// // // //
+// // // // class OtpPage extends StatefulWidget {
+// // // //   final String email;
+// // // //
+// // // //   const OtpPage({required this.email, super.key});
+// // // //
+// // // //   @override
+// // // //   OtpPageState createState() => OtpPageState();
+// // // // }
+// // // //
+// // // // class OtpPageState extends State<OtpPage> {
+// // // //   final _formKey = GlobalKey<FormState>();
+// // // //   final _otpController = TextEditingController();
+// // // //
+// // // //   @override
+// // // //   void dispose() {
+// // // //     _otpController.dispose();
+// // // //     super.dispose();
+// // // //   }
+// // // //
+// // // //   @override
+// // // //   Widget build(BuildContext context) {
+// // // //     return Scaffold(
+// // // //       appBar: AppBar(
+// // // //         title: const Text("OTP Verification"),
+// // // //       ),
+// // // //       body: Form(
+// // // //         key: _formKey,
+// // // //         child: Padding(
+// // // //           padding: const EdgeInsets.all(16.0),
+// // // //           child: Column(
+// // // //             mainAxisAlignment: MainAxisAlignment.center,
+// // // //             children: [
+// // // //               Text("Enter OTP sent to: ${widget.email}"),
+// // // //               const SizedBox(height: 20),
+// // // //               TextFormField(
+// // // //                 controller: _otpController,
+// // // //                 keyboardType: TextInputType.number,
+// // // //                 decoration: const InputDecoration(
+// // // //                   labelText: 'OTP',
+// // // //                   hintText: 'Enter OTP',
+// // // //                 ),
+// // // //                 validator: (value) {
+// // // //                   if (value == null || value.isEmpty) {
+// // // //                     return 'Please enter the OTP';
+// // // //                   }
+// // // //                   return null;
+// // // //                 },
+// // // //               ),
+// // // //               const SizedBox(height: 20),
+// // // //               ElevatedButton(
+// // // //                 onPressed: () async {
+// // // //                   if (_formKey.currentState!.validate()) {
+// // // //                     final authService = Provider.of<AuthService>(context, listen: false);
+// // // //                     final messenger = ScaffoldMessenger.of(context);
+// // // //                     final navigator = Navigator.of(context);
+// // // //
+// // // //                     try {
+// // // //                       await authService.verifyOtp(
+// // // //                         widget.email,
+// // // //                         _otpController.text,
+// // // //                       );
+// // // //
+// // // //                       navigator.pop();
+// // // //                     } catch (e) {
+// // // //                       messenger.showSnackBar(
+// // // //                         SnackBar(
+// // // //                           content: Text('Error verifying OTP: $e'),
+// // // //                           backgroundColor: Colors.red,
+// // // //                         ),
+// // // //                       );
+// // // //                     }
+// // // //                   }
+// // // //                 },
+// // // //                 child: const Text("Verify OTP"),
+// // // //               ),
+// // // //             ],
+// // // //           ),
+// // // //         ),
+// // // //       ),
+// // // //     );
+// // // //   }
+// // // // }
+    </document_content>
+  </document>
+  <document index="25">
+    <source>reset_password_page.dart</source>
+    <document_content>
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sollylabs_discover/auth/auth_service.dart';
+import 'package:sollylabs_discover/pages/otp_page.dart';
+
+class ResetPasswordPage extends StatefulWidget {
+  const ResetPasswordPage({super.key});
+
+  @override
+  ResetPasswordPageState createState() => ResetPasswordPageState();
+}
+
+class ResetPasswordPageState extends State<ResetPasswordPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Reset Password'),
+      ),
+      body: Form(
+        key: _formKey,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  hintText: 'Enter your email address',
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your email';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _isLoading
+                    ? null
+                    : () async {
+                        if (_formKey.currentState!.validate()) {
+                          setState(() {
+                            _isLoading = true;
+                          });
+                          final authService = Provider.of<AuthService>(context, listen: false);
+                          final messenger = ScaffoldMessenger.of(context);
+                          final navigator = Navigator.of(context);
+
+                          try {
+                            await authService.requestPasswordResetOtp(
+                              _emailController.text,
+                            );
+                            if (mounted) {
+                              navigator.push(
+                                MaterialPageRoute(
+                                  builder: (context) => OtpPage(
+                                    email: _emailController.text,
+                                    isResetPassword: true,
+                                  ),
+                                ),
+                              );
+                            }
+                          } catch (error) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text('Error: ${error.toString()}'),
+                              ),
+                            );
+                          } finally {
+                            setState(() {
+                              _isLoading = false;
+                            });
+                          }
+                        }
+                      },
+                child: _isLoading ? const CircularProgressIndicator() : const Text('Send OTP'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// import 'package:flutter/material.dart';
+// import 'package:provider/provider.dart';
+// import 'package:sollylabs_discover/auth/auth_service.dart';
+// import 'package:sollylabs_discover/pages/otp_page.dart';
+//
+// class ResetPasswordPage extends StatefulWidget {
+//   const ResetPasswordPage({super.key});
+//
+//   @override
+//   ResetPasswordPageState createState() => ResetPasswordPageState();
+// }
+//
+// class ResetPasswordPageState extends State<ResetPasswordPage> {
+//   final _formKey = GlobalKey<FormState>();
+//   final _emailController = TextEditingController();
+//   bool _isLoading = false;
+//
+//   @override
+//   void dispose() {
+//     _emailController.dispose();
+//     super.dispose();
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('Reset Password'),
+//       ),
+//       body: Form(
+//         key: _formKey,
+//         child: Padding(
+//           padding: const EdgeInsets.all(16.0),
+//           child: Column(
+//             mainAxisAlignment: MainAxisAlignment.center,
+//             children: [
+//               TextFormField(
+//                 controller: _emailController,
+//                 decoration: const InputDecoration(
+//                   labelText: 'Email',
+//                   hintText: 'Enter your email address',
+//                 ),
+//                 validator: (value) {
+//                   if (value == null || value.isEmpty) {
+//                     return 'Please enter your email';
+//                   }
+//                   return null;
+//                 },
+//               ),
+//               const SizedBox(height: 20),
+//               ElevatedButton(
+//                 onPressed: _isLoading
+//                     ? null
+//                     : () async {
+//                         if (_formKey.currentState!.validate()) {
+//                           setState(() {
+//                             _isLoading = true;
+//                           });
+//                           final authService = Provider.of<AuthService>(context, listen: false);
+//                           final messenger = ScaffoldMessenger.of(context);
+//                           final navigator = Navigator.of(context);
+//
+//                           try {
+//                             await authService.requestPasswordResetOtp(
+//                               _emailController.text,
+//                             );
+//                             if (mounted) {
+//                               navigator.push(
+//                                 MaterialPageRoute(
+//                                   builder: (context) => OtpPage(
+//                                     email: _emailController.text,
+//                                     isResetPassword: true,
+//                                   ),
+//                                 ),
+//                               );
+//                             }
+//                           } catch (error) {
+//                             messenger.showSnackBar(
+//                               SnackBar(
+//                                 content: Text('Error: ${error.toString()}'),
+//                               ),
+//                             );
+//                           } finally {
+//                             setState(() {
+//                               _isLoading = false;
+//                             });
+//                           }
+//                         }
+//                       },
+//                 child: _isLoading ? const CircularProgressIndicator() : const Text('Send OTP'),
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+//
+// // import 'package:flutter/material.dart';
+// // import 'package:provider/provider.dart';
+// // import 'package:sollylabs_discover/auth/auth_service.dart';
+// //
+// // class ResetPasswordPage extends StatefulWidget {
+// //   const ResetPasswordPage({super.key});
+// //
+// //   @override
+// //   ResetPasswordPageState createState() => ResetPasswordPageState();
+// // }
+// //
+// // class ResetPasswordPageState extends State<ResetPasswordPage> {
+// //   final _formKey = GlobalKey<FormState>();
+// //   final _emailController = TextEditingController();
+// //
+// //   @override
+// //   void dispose() {
+// //     _emailController.dispose();
+// //     super.dispose();
+// //   }
+// //
+// //   @override
+// //   Widget build(BuildContext context) {
+// //     return Scaffold(
+// //       appBar: AppBar(
+// //         title: const Text('Reset Password'),
+// //       ),
+// //       body: Form(
+// //         key: _formKey,
+// //         child: Padding(
+// //           padding: const EdgeInsets.all(16.0),
+// //           child: Column(
+// //             mainAxisAlignment: MainAxisAlignment.center,
+// //             children: [
+// //               TextFormField(
+// //                 controller: _emailController,
+// //                 decoration: const InputDecoration(
+// //                   labelText: 'Email',
+// //                   hintText: 'Enter your email address',
+// //                 ),
+// //                 validator: (value) {
+// //                   if (value == null || value.isEmpty) {
+// //                     return 'Please enter your email';
+// //                   }
+// //                   return null;
+// //                 },
+// //               ),
+// //               const SizedBox(height: 20),
+// //               ElevatedButton(
+// //                 onPressed: () async {
+// //                   if (_formKey.currentState!.validate()) {
+// //                     final authService = Provider.of<AuthService>(context, listen: false);
+// //                     final messenger = ScaffoldMessenger.of(context);
+// //                     final navigator = Navigator.of(context);
+// //
+// //                     try {
+// //                       await authService.sendPasswordResetEmail(
+// //                         _emailController.text,
+// //                       );
+// //                       messenger.showSnackBar(
+// //                         const SnackBar(
+// //                           content: Text('Password reset link sent! Please check your email.'),
+// //                         ),
+// //                       );
+// //                       navigator.pop(); // Go back to the login screen
+// //                     } catch (error) {
+// //                       messenger.showSnackBar(
+// //                         SnackBar(
+// //                           content: Text('Error: ${error.toString()}'),
+// //                         ),
+// //                       );
+// //                     }
+// //                   }
+// //                 },
+// //                 child: const Text('Send Reset Link'),
+// //               ),
+// //             ],
+// //           ),
+// //         ),
+// //       ),
+// //     );
+// //   }
+// // }
+    </document_content>
+  </document>
+  <document index="26">
+    <source>update_password_after_reset_page.dart</source>
+    <document_content>
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sollylabs_discover/auth/auth_service.dart';
+
+// Type alias for the state
+typedef UpdatePasswordAfterResetWidgetState = State<UpdatePasswordAfterResetPage>;
+
+class UpdatePasswordAfterResetPage extends StatefulWidget {
+  const UpdatePasswordAfterResetPage({super.key});
+
+  @override
+  UpdatePasswordAfterResetWidgetState createState() => _UpdatePasswordAfterResetPageState();
+}
+
+class _UpdatePasswordAfterResetPageState extends State<UpdatePasswordAfterResetPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _newPasswordController = TextEditingController();
+  final _confirmNewPasswordController = TextEditingController();
+  bool _showNewPassword = false;
+  bool _showConfirmNewPassword = false;
+  bool _isLoading = false; // Loading state
+
+  @override
+  void dispose() {
+    _newPasswordController.dispose();
+    _confirmNewPasswordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Update Password'),
+      ),
+      body: Form(
+        key: _formKey,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextFormField(
+                controller: _newPasswordController,
+                obscureText: !_showNewPassword,
+                decoration: InputDecoration(
+                  labelText: 'New Password',
+                  hintText: 'Enter your new password',
+                  suffixIcon: IconButton(
+                    icon: Icon(_showNewPassword ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () {
+                      setState(() {
+                        _showNewPassword = !_showNewPassword;
+                      });
+                    },
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a new password';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: _confirmNewPasswordController,
+                obscureText: !_showConfirmNewPassword,
+                decoration: InputDecoration(
+                  labelText: 'Confirm New Password',
+                  hintText: 'Re-enter your new password',
+                  suffixIcon: IconButton(
+                    icon: Icon(_showConfirmNewPassword ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () {
+                      setState(() {
+                        _showConfirmNewPassword = !_showConfirmNewPassword;
+                      });
+                    },
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please confirm your new password';
+                  }
+                  if (value != _newPasswordController.text) {
+                    return 'Passwords do not match';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _isLoading
+                    ? null
+                    : () async {
+                        if (_formKey.currentState!.validate()) {
+                          setState(() {
+                            _isLoading = true;
+                          });
+                          final messenger = ScaffoldMessenger.of(context);
+                          final navigator = Navigator.of(context);
+
+                          try {
+                            // Update password after OTP verification
+                            final authService = Provider.of<AuthService>(context, listen: false);
+                            final isSuccess = await authService.updateUserPassword(
+                              password: _newPasswordController.text,
+                            );
+
+                            if (isSuccess) {
+                              // Show success message
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Password updated successfully!'),
+                                ),
+                              );
+                              navigator.popUntil((route) => route.isFirst);
+                            } else {
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Failed to update password.'),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text('An error occurred: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          } finally {
+                            setState(() {
+                              _isLoading = false;
+                            });
+                          }
+                        }
+                      },
+                child: _isLoading ? const CircularProgressIndicator() : const Text('Update Password'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+    </document_content>
+  </document>
+  <document index="27">
+    <source>update_password_page.dart</source>
+    <document_content>
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sollylabs_discover/auth/auth_service.dart';
+
+class UpdatePasswordPage extends StatefulWidget {
+  const UpdatePasswordPage({super.key});
+
+  @override
+  UpdatePasswordPageState createState() => UpdatePasswordPageState();
+}
+
+class UpdatePasswordPageState extends State<UpdatePasswordPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _currentPasswordController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmNewPasswordController = TextEditingController();
+  bool _showCurrentPassword = false;
+  bool _showNewPassword = false;
+  bool _showConfirmNewPassword = false;
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmNewPasswordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Update Password'),
+      ),
+      body: Form(
+        key: _formKey,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Current Password Field
+              TextFormField(
+                controller: _currentPasswordController,
+                obscureText: !_showCurrentPassword,
+                decoration: InputDecoration(
+                  labelText: 'Current Password',
+                  hintText: 'Enter your current password',
+                  suffixIcon: IconButton(
+                    icon: Icon(_showCurrentPassword ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () {
+                      setState(() {
+                        _showCurrentPassword = !_showCurrentPassword;
+                      });
+                    },
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your current password';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              // New Password Field
+              TextFormField(
+                controller: _newPasswordController,
+                obscureText: !_showNewPassword,
+                decoration: InputDecoration(
+                  labelText: 'New Password',
+                  hintText: 'Enter your new password',
+                  suffixIcon: IconButton(
+                    icon: Icon(_showNewPassword ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () {
+                      setState(() {
+                        _showNewPassword = !_showNewPassword;
+                      });
+                    },
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a new password';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              // Confirm New Password Field
+              TextFormField(
+                controller: _confirmNewPasswordController,
+                obscureText: !_showConfirmNewPassword,
+                decoration: InputDecoration(
+                  labelText: 'Confirm New Password',
+                  hintText: 'Re-enter your new password',
+                  suffixIcon: IconButton(
+                    icon: Icon(_showConfirmNewPassword ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () {
+                      setState(() {
+                        _showConfirmNewPassword = !_showConfirmNewPassword;
+                      });
+                    },
+                  ),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please confirm your new password';
+                  }
+                  if (value != _newPasswordController.text) {
+                    return 'Passwords do not match';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _isLoading
+                    ? null
+                    : () async {
+                        if (_formKey.currentState!.validate()) {
+                          setState(() {
+                            _isLoading = true;
+                          });
+                          final messenger = ScaffoldMessenger.of(context);
+                          final navigator = Navigator.of(context);
+
+                          // Verify current password first
+                          final authService = Provider.of<AuthService>(context, listen: false);
+                          final isCurrentPasswordCorrect = await authService.verifyCurrentPassword(
+                            password: _currentPasswordController.text,
+                          );
+
+                          if (!isCurrentPasswordCorrect) {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('Incorrect current password'),
+                              ),
+                            );
+                            setState(() {
+                              _isLoading = false;
+                            });
+                            return;
+                          }
+
+                          try {
+                            // Update password after current password verification
+                            final isSuccess = await authService.updateUserPassword(
+                              password: _newPasswordController.text,
+                            );
+
+                            if (isSuccess) {
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Password updated successfully!'),
+                                ),
+                              );
+                              navigator.pop();
+                            } else {
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Failed to update password.'),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text('An error occurred: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          } finally {
+                            setState(() {
+                              _isLoading = false;
+                            });
+                          }
+                        }
+                      },
+                child: _isLoading ? const CircularProgressIndicator() : const Text('Update Password'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// import 'package:flutter/material.dart';
+// import 'package:provider/provider.dart';
+// import 'package:sollylabs_discover/auth/auth_service.dart';
+//
+// class UpdatePasswordPage extends StatefulWidget {
+//   const UpdatePasswordPage({super.key});
+//
+//   @override
+//   UpdatePasswordPageState createState() => UpdatePasswordPageState();
+// }
+//
+// class UpdatePasswordPageState extends State<UpdatePasswordPage> {
+//   final _formKey = GlobalKey<FormState>();
+//   final _currentPasswordController = TextEditingController();
+//   final _newPasswordController = TextEditingController();
+//   final _confirmNewPasswordController = TextEditingController();
+//   bool _showCurrentPassword = false;
+//   bool _showNewPassword = false;
+//   bool _showConfirmNewPassword = false;
+//   bool _isLoading = false;
+//
+//   @override
+//   void dispose() {
+//     _currentPasswordController.dispose();
+//     _newPasswordController.dispose();
+//     _confirmNewPasswordController.dispose();
+//     super.dispose();
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         title: const Text('Update Password'),
+//       ),
+//       body: Form(
+//         key: _formKey,
+//         child: Padding(
+//           padding: const EdgeInsets.all(16.0),
+//           child: Column(
+//             mainAxisAlignment: MainAxisAlignment.center,
+//             children: [
+//               // Current Password Field
+//               TextFormField(
+//                 controller: _currentPasswordController,
+//                 obscureText: !_showCurrentPassword,
+//                 decoration: InputDecoration(
+//                   labelText: 'Current Password',
+//                   hintText: 'Enter your current password',
+//                   suffixIcon: IconButton(
+//                     icon: Icon(_showCurrentPassword ? Icons.visibility : Icons.visibility_off),
+//                     onPressed: () {
+//                       setState(() {
+//                         _showCurrentPassword = !_showCurrentPassword;
+//                       });
+//                     },
+//                   ),
+//                 ),
+//                 validator: (value) {
+//                   if (value == null || value.isEmpty) {
+//                     return 'Please enter your current password';
+//                   }
+//                   return null;
+//                 },
+//               ),
+//               const SizedBox(height: 20),
+//               // New Password Field
+//               TextFormField(
+//                 controller: _newPasswordController,
+//                 obscureText: !_showNewPassword,
+//                 decoration: InputDecoration(
+//                   labelText: 'New Password',
+//                   hintText: 'Enter your new password',
+//                   suffixIcon: IconButton(
+//                     icon: Icon(_showNewPassword ? Icons.visibility : Icons.visibility_off),
+//                     onPressed: () {
+//                       setState(() {
+//                         _showNewPassword = !_showNewPassword;
+//                       });
+//                     },
+//                   ),
+//                 ),
+//                 validator: (value) {
+//                   if (value == null || value.isEmpty) {
+//                     return 'Please enter a new password';
+//                   }
+//                   return null;
+//                 },
+//               ),
+//               const SizedBox(height: 20),
+//               // Confirm New Password Field
+//               TextFormField(
+//                 controller: _confirmNewPasswordController,
+//                 obscureText: !_showConfirmNewPassword,
+//                 decoration: InputDecoration(
+//                   labelText: 'Confirm New Password',
+//                   hintText: 'Re-enter your new password',
+//                   suffixIcon: IconButton(
+//                     icon: Icon(_showConfirmNewPassword ? Icons.visibility : Icons.visibility_off),
+//                     onPressed: () {
+//                       setState(() {
+//                         _showConfirmNewPassword = !_showConfirmNewPassword;
+//                       });
+//                     },
+//                   ),
+//                 ),
+//                 validator: (value) {
+//                   if (value == null || value.isEmpty) {
+//                     return 'Please confirm your new password';
+//                   }
+//                   if (value != _newPasswordController.text) {
+//                     return 'Passwords do not match';
+//                   }
+//                   return null;
+//                 },
+//               ),
+//               const SizedBox(height: 20),
+//               ElevatedButton(
+//                 onPressed: _isLoading
+//                     ? null
+//                     : () async {
+//                         if (_formKey.currentState!.validate()) {
+//                           setState(() {
+//                             _isLoading = true;
+//                           });
+//                           final messenger = ScaffoldMessenger.of(context);
+//                           final navigator = Navigator.of(context);
+//
+//                           // Verify current password first
+//                           final authService = Provider.of<AuthService>(context, listen: false);
+//                           final isCurrentPasswordCorrect = await authService.verifyCurrentPassword(
+//                             password: _currentPasswordController.text,
+//                           );
+//
+//                           if (!isCurrentPasswordCorrect) {
+//                             messenger.showSnackBar(
+//                               const SnackBar(
+//                                 content: Text('Incorrect current password'),
+//                               ),
+//                             );
+//                             setState(() {
+//                               _isLoading = false;
+//                             });
+//                             return;
+//                           }
+//
+//                           try {
+//                             // Update password after current password verification
+//                             final isSuccess = await authService.updateUserPassword(
+//                               password: _newPasswordController.text,
+//                             );
+//
+//                             if (isSuccess) {
+//                               messenger.showSnackBar(
+//                                 const SnackBar(
+//                                   content: Text('Password updated successfully!'),
+//                                 ),
+//                               );
+//                               navigator.pop();
+//                             } else {
+//                               messenger.showSnackBar(
+//                                 const SnackBar(
+//                                   content: Text('Failed to update password.'),
+//                                 ),
+//                               );
+//                             }
+//                           } catch (e) {
+//                             messenger.showSnackBar(
+//                               SnackBar(
+//                                 content: Text('An error occurred: $e'),
+//                                 backgroundColor: Colors.red,
+//                               ),
+//                             );
+//                           } finally {
+//                             setState(() {
+//                               _isLoading = false;
+//                             });
+//                           }
+//                         }
+//                       },
+//                 child: _isLoading ? const CircularProgressIndicator() : const Text('Update Password'),
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+    </document_content>
+  </document>
+  <document index="28">
+    <source>account_page.dart</source>
+    <document_content>
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+import 'package:sollylabs_discover/auth/auth_service.dart';
+import 'package:sollylabs_discover/database/database.dart';
+import 'package:sollylabs_discover/database/models/profile.dart';
+import 'package:sollylabs_discover/pages/login_page.dart';
+import 'package:sollylabs_discover/pages/otp_page.dart';
+
+class AccountPage extends StatefulWidget {
+  const AccountPage({super.key});
+
+  @override
+  State<AccountPage> createState() => _AccountPageState();
+}
+
+class _AccountPageState extends State<AccountPage> {
+  bool _isSigningOut = false;
+  Profile? _userProfile;
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _fullNameController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _websiteController = TextEditingController();
+  final TextEditingController _displayIdController = TextEditingController();
+  File? _avatarImage;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    _usernameController.dispose();
+    _websiteController.dispose();
+    _displayIdController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final database = Provider.of<Database>(context, listen: false);
+    try {
+      final profile = await database.profileService.getProfile();
+      if (profile != null && mounted) {
+        setState(() {
+          _userProfile = profile;
+          _fullNameController.text = _userProfile!.fullName ?? '';
+          _usernameController.text = _userProfile!.username ?? '';
+          _websiteController.text = _userProfile!.website ?? '';
+          _displayIdController.text = _userProfile!.displayId ?? '';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading user profile: $e');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error loading profile: $e'), backgroundColor: Colors.red));
+    }
+  }
+
+  Future<void> _updateProfile() async {
+    if (_formKey.currentState!.validate()) {
+      final database = Provider.of<Database>(context, listen: false);
+
+      // Validate uniqueness of displayId if it's not null
+      if (_displayIdController.text.isNotEmpty) {
+        final isUnique = await database.profileService.isDisplayIdUnique(_displayIdController.text, _userProfile!.id.uuid);
+        if (!isUnique && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Display ID is already taken'), backgroundColor: Colors.red));
+          return;
+        }
+      }
+
+      String? avatarUrl;
+      if (_avatarImage != null) {
+        avatarUrl = await database.profileService.uploadAvatar(_userProfile!.id.uuid, _avatarImage!);
+      }
+
+      final updatedProfile = Profile(
+        id: _userProfile!.id,
+        fullName: _fullNameController.text,
+        username: _usernameController.text,
+        website: _websiteController.text,
+        displayId: _displayIdController.text.isEmpty ? null : _displayIdController.text,
+        updatedAt: DateTime.now(),
+        email: _userProfile!.email,
+        avatarUrl: avatarUrl ?? _userProfile!.avatarUrl,
+      );
+
+      try {
+        await database.profileService.updateProfile(updatedProfile);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Profile updated successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          setState(() {
+            _avatarImage = null; // Clear the selected image after updating
+            _userProfile = updatedProfile; // Update the local profile
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error updating profile: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    // Pick an image
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        _avatarImage = File(image.path);
+      });
+    }
+  }
+
+  Future<void> _removeAvatar() async {
+    final database = Provider.of<Database>(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      // Delete the avatar from storage
+      await database.profileService.deleteAvatar(_userProfile!.id.uuid);
+
+      // Update the user's profile to set the avatarUrl to null
+      final updatedProfile = _userProfile!.copyWith(avatarUrl: null);
+      await database.profileService.updateProfile(updatedProfile);
+
+      if (mounted) {
+        setState(() {
+          _userProfile = updatedProfile;
+          _avatarImage = null; // Clear the local image
+        });
+
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Avatar removed successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Error removing avatar: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Account'),
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (_userProfile != null) ...[
+                    Column(
+                      children: [
+                        GestureDetector(
+                          onTap: _pickImage,
+                          child: CircleAvatar(
+                            radius: 50,
+                            backgroundImage: _avatarImage != null ? FileImage(_avatarImage!) : (_userProfile!.avatarUrl != null ? NetworkImage(_userProfile!.avatarUrl!) : null) as ImageProvider<Object>?,
+                            child: _avatarImage == null && _userProfile!.avatarUrl == null ? const Icon(Icons.camera_alt, size: 50) : null,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        if (_userProfile!.avatarUrl != null || _avatarImage != null)
+                          ElevatedButton(
+                            onPressed: _removeAvatar,
+                            child: const Text('Remove Avatar'),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _fullNameController,
+                      decoration: const InputDecoration(labelText: 'Full Name'),
+                    ),
+                    TextFormField(
+                      controller: _usernameController,
+                      decoration: const InputDecoration(labelText: 'Username'),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a username';
+                        }
+                        if (value.length < 3) {
+                          return 'Username must be at least 3 characters long';
+                        }
+                        return null;
+                      },
+                    ),
+                    TextFormField(
+                      controller: _websiteController,
+                      decoration: const InputDecoration(labelText: 'Website'),
+                    ),
+                    TextFormField(
+                      controller: _displayIdController,
+                      decoration: const InputDecoration(labelText: 'Display ID'),
+                    ),
+                    const SizedBox(height: 20),
+                    _isLoading
+                        ? const CircularProgressIndicator()
+                        : ElevatedButton(
+                            onPressed: _updateProfile,
+                            child: const Text('Update Profile'),
+                          ),
+                  ],
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _isSigningOut
+                        ? null
+                        : () async {
+                            setState(() {
+                              _isSigningOut = true;
+                            });
+
+                            final messenger = ScaffoldMessenger.of(context);
+                            final authService = Provider.of<AuthService>(context, listen: false);
+                            final navigator = Navigator.of(context);
+                            try {
+                              await authService.signOut();
+
+                              // Explicitly navigate to LoginPage after successful sign out
+                              if (context.mounted) {
+                                navigator.pushAndRemoveUntil(
+                                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                                  (Route<dynamic> route) => false, // Remove all previous routes
+                                );
+                              }
+                            } catch (e) {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text('Error during sign out: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            } finally {
+                              setState(() {
+                                _isSigningOut = false;
+                              });
+                            }
+                          },
+                    child: _isSigningOut
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(),
+                          )
+                        : const Text('Sign Out'),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () async {
+                            setState(() {
+                              _isLoading = true;
+                            });
+                            final authService = Provider.of<AuthService>(context, listen: false);
+                            final messenger = ScaffoldMessenger.of(context);
+                            final navigator = Navigator.of(context);
+                            try {
+                              await authService.requestPasswordResetOtp(
+                                authService.currentUser!.email!,
+                              );
+                              if (mounted) {
+                                navigator.push(
+                                  MaterialPageRoute(
+                                    builder: (context) => OtpPage(
+                                      email: authService.currentUser!.email!,
+                                      isResetPassword: true,
+                                    ),
+                                  ),
+                                );
+                              }
+                            } catch (error) {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text('Error: ${error.toString()}'),
+                                ),
+                              );
+                            } finally {
+                              setState(() {
+                                _isLoading = false;
+                              });
+                            }
+                          },
+                    child: _isLoading ? const CircularProgressIndicator() : const Text('Update Password'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+    </document_content>
+  </document>
+  <document index="29">
+    <source>sign_in_form.dart</source>
+    <document_content>
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sollylabs_discover/auth/auth_service.dart';
+import 'package:sollylabs_discover/pages/otp_page.dart';
+import 'package:sollylabs_discover/pages/reset_password_page.dart';
+
+class SignInForm extends StatefulWidget {
+  const SignInForm({super.key});
+
+  @override
+  SignInFormState createState() => SignInFormState();
+}
+
+class SignInFormState extends State<SignInForm> with SingleTickerProviderStateMixin {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  late TabController _tabController;
+  bool _showPassword = false;
+  bool _isLoading = false; // Add a loading state variable
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                TextFormField(
+                  key: const Key('emailField'),
+                  controller: _emailController,
+                  decoration: const InputDecoration(labelText: 'Email'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your email';
+                    }
+                    return null;
+                  },
+                ),
+                if (_tabController.index == 1) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16.0),
+                    child: TextFormField(
+                      key: const Key('passwordField'),
+                      controller: _passwordController,
+                      obscureText: !_showPassword,
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _showPassword ? Icons.visibility : Icons.visibility_off,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _showPassword = !_showPassword;
+                            });
+                          },
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your password';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                if (_tabController.index == 1) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ResetPasswordPage()),
+                        );
+                      },
+                      child: const Text(
+                        'Forgot Password?',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(text: 'Sign in with OTP'),
+              Tab(text: 'Sign in with Password'),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _isLoading // Show progress indicator if loading
+              ? const CircularProgressIndicator()
+              : ElevatedButton(
+                  key: const Key('signInButton'),
+                  onPressed: () async {
+                    if (_formKey.currentState!.validate()) {
+                      setState(() {
+                        _isLoading = true; // Start loading
+                      });
+
+                      final authService = Provider.of<AuthService>(context, listen: false);
+                      final messenger = ScaffoldMessenger.of(context);
+                      final navigator = Navigator.of(context);
+
+                      try {
+                        if (_tabController.index == 1) {
+                          // Handle password sign-in
+                          await authService.signInWithEmailAndPassword(
+                            _emailController.text,
+                            _passwordController.text,
+                          );
+                        } else {
+                          // Handle existing OTP sign-in
+                          await authService.signInWithOtp(
+                            _emailController.text,
+                          );
+                          if (mounted) {
+                            navigator.push(
+                              MaterialPageRoute(
+                                builder: (context) => OtpPage(email: _emailController.text),
+                              ),
+                            );
+                          }
+                        }
+                      } catch (e) {
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(e.toString()),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        setState(() {
+                          _isLoading = false; // Stop loading
+                        });
+                      } finally {
+                        setState(() {
+                          _isLoading = false; // Stop loading
+                        });
+                      }
+                    }
+                  },
+                  child: const Text('Sign In'),
+                ),
+        ],
+      ),
+    );
+  }
+}
+
+// import 'package:flutter/material.dart';
+// import 'package:provider/provider.dart';
+// import 'package:sollylabs_discover/auth/auth_service.dart';
+// import 'package:sollylabs_discover/pages/otp_page.dart';
+// import 'package:sollylabs_discover/pages/reset_password_page.dart';
+//
+// class SignInForm extends StatefulWidget {
+//   const SignInForm({super.key});
+//
+//   @override
+//   SignInFormState createState() => SignInFormState();
+// }
+//
+// class SignInFormState extends State<SignInForm> with SingleTickerProviderStateMixin {
+//   final _formKey = GlobalKey<FormState>();
+//   final _emailController = TextEditingController();
+//   final _passwordController = TextEditingController();
+//   late TabController _tabController;
+//   bool _showPassword = false;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _tabController = TabController(length: 2, vsync: this);
+//     _tabController.addListener(() {
+//       setState(() {});
+//     });
+//   }
+//
+//   @override
+//   void dispose() {
+//     _emailController.dispose();
+//     _passwordController.dispose();
+//     _tabController.dispose();
+//     super.dispose();
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Form(
+//       key: _formKey,
+//       child: Column(
+//         mainAxisAlignment: MainAxisAlignment.center,
+//         children: [
+//           Padding(
+//             padding: const EdgeInsets.all(16.0),
+//             child: Column(
+//               children: [
+//                 TextFormField(
+//                   key: const Key('emailField'),
+//                   controller: _emailController,
+//                   decoration: const InputDecoration(labelText: 'Email'),
+//                   validator: (value) {
+//                     if (value == null || value.isEmpty) {
+//                       return 'Please enter your email';
+//                     }
+//                     return null;
+//                   },
+//                 ),
+//                 if (_tabController.index == 1) ...[
+//                   Padding(
+//                     padding: const EdgeInsets.only(top: 16.0),
+//                     child: TextFormField(
+//                       key: const Key('passwordField'),
+//                       controller: _passwordController,
+//                       obscureText: !_showPassword,
+//                       decoration: InputDecoration(
+//                         labelText: 'Password',
+//                         suffixIcon: IconButton(
+//                           icon: Icon(
+//                             _showPassword ? Icons.visibility : Icons.visibility_off,
+//                           ),
+//                           onPressed: () {
+//                             setState(() {
+//                               _showPassword = !_showPassword;
+//                             });
+//                           },
+//                         ),
+//                       ),
+//                       validator: (value) {
+//                         if (value == null || value.isEmpty) {
+//                           return 'Please enter your password';
+//                         }
+//                         return null;
+//                       },
+//                     ),
+//                   ),
+//                 ],
+//                 const SizedBox(height: 16),
+//                 if (_tabController.index == 1) ...[
+//                   Padding(
+//                     padding: const EdgeInsets.symmetric(vertical: 8.0),
+//                     child: GestureDetector(
+//                       onTap: () {
+//                         Navigator.push(
+//                           context,
+//                           MaterialPageRoute(builder: (context) => const ResetPasswordPage()),
+//                         );
+//                       },
+//                       child: const Text(
+//                         'Forgot Password?',
+//                         style: TextStyle(
+//                           color: Colors.blue,
+//                           decoration: TextDecoration.underline,
+//                         ),
+//                       ),
+//                     ),
+//                   ),
+//                 ],
+//               ],
+//             ),
+//           ),
+//           TabBar(
+//             controller: _tabController,
+//             tabs: const [
+//               Tab(text: 'Sign in with OTP'),
+//               Tab(text: 'Sign in with Password'),
+//             ],
+//           ),
+//           const SizedBox(height: 20),
+//           ElevatedButton(
+//             key: const Key('signInButton'),
+//             onPressed: () async {
+//               if (_formKey.currentState!.validate()) {
+//                 final authService = Provider.of<AuthService>(context, listen: false);
+//                 final messenger = ScaffoldMessenger.of(context);
+//                 final navigator = Navigator.of(context);
+//
+//                 try {
+//                   if (_tabController.index == 1) {
+//                     // Handle password sign-in
+//                     await authService.signInWithEmailAndPassword(
+//                       _emailController.text,
+//                       _passwordController.text,
+//                     );
+//                   } else {
+//                     // Handle existing OTP sign-in
+//                     await authService.signInWithOtp(
+//                       _emailController.text,
+//                     );
+//                     navigator.push(
+//                       MaterialPageRoute(
+//                         builder: (context) => OtpPage(email: _emailController.text),
+//                       ),
+//                     );
+//                   }
+//                 } catch (e) {
+//                   messenger.showSnackBar(
+//                     SnackBar(
+//                       content: Text(e.toString()),
+//                       backgroundColor: Colors.red,
+//                     ),
+//                   );
+//                 }
+//               }
+//             },
+//             child: const Text('Sign In'),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
+    </document_content>
+  </document>
+</documents>

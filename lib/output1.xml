@@ -1,0 +1,856 @@
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'package:flutter/foundation.dart';
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'package:flutter/material.dart';
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'package:flutter_web_plugins/url_strategy.dart';
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'package:provider/provider.dart';
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'package:sollylabs_discover/auth/auth_gate.dart';
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'package:sollylabs_discover/auth/auth_service.dart';
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'package:sollylabs_discover/pages/update_password_after_reset_page.dart';
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'package:supabase_flutter/supabase_flutter.dart';
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'database/database.dart';
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'database/services/connection_service.dart';
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'database/services/invitation_service.dart';
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'database/services/message_service.dart';
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'database/services/profile_service.dart';
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'database/services/project_permission_service.dart';
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'database/services/project_service.dart';
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'pages/account/account_page.dart';
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'pages/connections_page.dart';
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'pages/dashboard_page.dart';
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+import 'pages/update_password_page.dart';
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+Future<void> main() async {
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+  WidgetsFlutterBinding.ensureInitialized();
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+  // Use path-based URLs for web (remove the #)
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+  usePathUrlStrategy();
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+  await Supabase.initialize(
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+    url: 'https://xxrsdsxpunwytsfizujp.supabase.co',
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4cnNkc3hwdW53eXRzZml6dWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0NTQ5NjgsImV4cCI6MjA1MzAzMDk2OH0.39sq7-uHSVPcKN6fzGzLOPt4pUXi3bnn-F-eT6UFLfw',
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+  ).then((_) {
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+    // Handle redirect here after initialization
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+      final AuthChangeEvent event = data.event;
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+      final Session? session = data.session;
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+      if (kDebugMode) {
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        print("Auth Change Event: $event");
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        print('Session: ${session?.toJson()}');
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+      }
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+      if (event == AuthChangeEvent.signedIn) {
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        // Navigate to account page only if there is a session
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        if (session != null) {
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+          if (kDebugMode) {
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+            print("Navigating to /account");
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+          }
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+          navigatorKey.currentState?.pushReplacementNamed('/account');
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        }
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+      } else if (event == AuthChangeEvent.passwordRecovery) {
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        // Navigate to update password page
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        if (kDebugMode) {
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+          print("Navigating to /update-password");
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        }
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        navigatorKey.currentState?.pushReplacementNamed('/update-password');
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+      }
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+    });
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+  });
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+  runApp(
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+    MultiProvider(
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+      providers: [
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        ChangeNotifierProvider(create: (_) => AuthService(Supabase.instance.client)),
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        Provider<Database>(
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+          create: (_) => Database(
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+            projectService: ProjectService(),
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+            projectPermissionService: ProjectPermissionService(),
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+            profileService: ProfileService(),
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+            invitationService: InvitationService(),
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+            connectionService: ConnectionService(),
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+            messageService: MessageService(),
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+          ),
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        ),
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        Provider<ConnectionService>(create: (_) => ConnectionService()),
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        Provider<ProfileService>(create: (context) => context.read<Database>().profileService),
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        // Add other providers here if needed
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+      ],
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+      child: const MyApp(),
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+    ),
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+  );
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+}
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+class MyApp extends StatelessWidget {
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+  const MyApp({super.key});
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+  @override
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+  Widget build(BuildContext context) {
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+    return MaterialApp(
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+      navigatorKey: navigatorKey,
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+      title: 'Solly Labs',
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+      theme: ThemeData(
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        primarySwatch: Colors.blue,
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+      ),
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+      routes: {
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        '/': (context) => const AuthGate(),
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        '/account': (context) => const AccountPage(),
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        '/update-password': (context) => const UpdatePasswordAfterResetPage(),
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        '/dashboard': (context) => const DashboardPage(),
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        '/update-password-in-app': (context) => const UpdatePasswordPage(),
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+        '/connections': (context) => const ConnectionsPage(), // Added route
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+      },
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+      initialRoute: '/',
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+    );
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+  }
+    </document_content>
+  </document>
+</documents>
+<documents>
+  <document index="1">
+    <source>main.dart</source>
+    <document_content>
+}
+    </document_content>
+  </document>
+</documents>

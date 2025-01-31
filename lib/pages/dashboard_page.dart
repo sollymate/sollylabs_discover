@@ -3,6 +3,9 @@ import 'package:sollylabs_discover/pages/account/account_page.dart';
 import 'package:sollylabs_discover/pages/connections_page.dart';
 
 import 'community_page.dart';
+import 'network_page.dart';
+import 'test_community_page.dart';
+import 'test_connection_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -32,6 +35,19 @@ class DashboardPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
+              icon: const Icon(Icons.people),
+              label: const Text('Test Connections'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TestConnectionsPage(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
               icon: const Icon(Icons.account_circle),
               label: const Text('Account'),
               onPressed: () {
@@ -54,68 +70,31 @@ class DashboardPage extends StatelessWidget {
                 );
               },
             ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.group),
+              label: const Text('Test Community'),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const TestCommunityPage()),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.link), // ✅ New icon for NetworkPage
+              label: const Text('Network'), // ✅ Button for NetworkPage
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const NetworkPage()),
+                );
+              },
+            ),
           ],
         ),
       ),
     );
   }
 }
-
-// import 'package:flutter/material.dart';
-// import 'package:sollylabs_discover/pages/account/account_page.dart';
-//
-// class DashboardPage extends StatelessWidget {
-//   const DashboardPage({super.key});
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text('Dashboard'),
-//       ),
-//       drawer: Drawer(
-//         child: ListView(
-//           padding: EdgeInsets.zero,
-//           children: [
-//             const DrawerHeader(
-//               decoration: BoxDecoration(
-//                 color: Colors.blue,
-//               ),
-//               child: Text(
-//                 'Dashboard Menu',
-//                 style: TextStyle(
-//                   color: Colors.white,
-//                   fontSize: 24,
-//                 ),
-//               ),
-//             ),
-//             ListTile(
-//               leading: const Icon(Icons.account_circle),
-//               title: const Text('Account'),
-//               onTap: () {
-//                 Navigator.pop(context); // Close the drawer
-//                 Navigator.push(
-//                   context,
-//                   MaterialPageRoute(
-//                     builder: (context) => const AccountPage(),
-//                   ),
-//                 );
-//               },
-//             ),
-//             ListTile(
-//               leading: const Icon(Icons.people),
-//               title: const Text('Connections'),
-//               onTap: () {
-//                 Navigator.pop(context); // Close the drawer
-//                 Navigator.pushNamed(context, '/connections'); // Navigate using route
-//               },
-//             ),
-//           ],
-//         ),
-//       ),
-//       body: const Center(
-//         child: Text('Welcome to the Dashboard!'),
-//       ),
-//     );
-//   }
-// }

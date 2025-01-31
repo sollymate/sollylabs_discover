@@ -20,40 +20,6 @@ class ProfileService {
 
     return response.isNotEmpty ? response.map<Profile>((data) => Profile.fromJson(data)).toList() : [];
   }
-  // Future<List<Profile>> getAllProfiles({required String currentUserId, String? searchQuery, int? limit, int offset = 0}) async {
-  //   var query = globals.supabaseClient.from('profiles').select('id, email, display_id, full_name, avatar_url, updated_at, connections!left(user1_id, user2_id)').neq('id', currentUserId); // ✅ Exclude current user
-  //
-  //   if (searchQuery != null && searchQuery.isNotEmpty) {
-  //     query = query.or('email.ilike.%$searchQuery%,display_id.ilike.%$searchQuery%,website.ilike.%$searchQuery%'); // ✅ Filter at DB level
-  //   }
-  //
-  //   final response = limit != null
-  //       ? await query.range(offset, offset + limit - 1) // ✅ Use correct offset for pagination
-  //       : await query;
-  //
-  //   return response.isNotEmpty
-  //       ? response.map<Profile>((data) {
-  //           return Profile.fromJson({
-  //             ...data,
-  //             'is_connected': data['is_connected'] != null, // ✅ If connection exists, mark as connected
-  //           });
-  //         }).toList()
-  //       : [];
-  // }
-
-  // Future<List<Profile>> getAllProfiles({String? searchQuery, int? limit, int offset = 0}) async {
-  //   var query = globals.supabaseClient.from('profiles').select('id, email, display_id, full_name, avatar_url, updated_at');
-  //
-  //   if (searchQuery != null && searchQuery.isNotEmpty) {
-  //     query = query.or('email.ilike.%$searchQuery%,display_id.ilike.%$searchQuery%,website.ilike.%$searchQuery%'); // ✅ Filter at DB level
-  //   }
-  //
-  //   final response = limit != null
-  //       ? await query.range(offset, offset + limit - 1) // ✅ Use correct offset for pagination
-  //       : await query;
-  //
-  //   return response.isNotEmpty ? response.map<Profile>((data) => Profile.fromJson(data)).toList() : [];
-  // }
 
   /// ✅ **Upload User Avatar**
   Future<String?> uploadAvatar(String userId, File imageFile) async {

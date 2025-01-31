@@ -4,6 +4,7 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:provider/provider.dart';
 import 'package:sollylabs_discover/auth/auth_gate.dart';
 import 'package:sollylabs_discover/auth/auth_service.dart';
+import 'package:sollylabs_discover/database/services/community_service.dart';
 import 'package:sollylabs_discover/pages/update_password_after_reset_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -11,12 +12,15 @@ import 'database/database.dart';
 import 'database/services/connection_service.dart';
 import 'database/services/invitation_service.dart';
 import 'database/services/message_service.dart';
+import 'database/services/network_service.dart';
 import 'database/services/profile_service.dart';
 import 'database/services/project_permission_service.dart';
 import 'database/services/project_service.dart';
 import 'pages/account/account_page.dart';
+import 'pages/community_page.dart';
 import 'pages/connections_page.dart';
 import 'pages/dashboard_page.dart';
+import 'pages/network_page.dart';
 import 'pages/update_password_page.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -49,13 +53,14 @@ Future<void> main() async {
           }
           navigatorKey.currentState?.pushReplacementNamed('/account');
         }
-      } else if (event == AuthChangeEvent.passwordRecovery) {
-        // Navigate to update password page
-        if (kDebugMode) {
-          print("Navigating to /update-password");
-        }
-        navigatorKey.currentState?.pushReplacementNamed('/update-password');
       }
+      // else if (event == AuthChangeEvent.passwordRecovery) {
+      //   // Navigate to update password page
+      //   if (kDebugMode) {
+      //     print("Navigating to /update-password");
+      //   }
+      //   navigatorKey.currentState?.pushReplacementNamed('/update-password');
+      // }
     });
   });
 
@@ -71,10 +76,15 @@ Future<void> main() async {
             invitationService: InvitationService(),
             connectionService: ConnectionService(),
             messageService: MessageService(),
+            communityService: CommunityService(),
+            networkService: NetworkService(), //
           ),
         ),
         Provider<ConnectionService>(create: (_) => ConnectionService()),
         Provider<ProfileService>(create: (context) => context.read<Database>().profileService),
+        Provider<CommunityService>(create: (context) => context.read<Database>().communityService),
+        Provider<NetworkService>(create: (context) => context.read<Database>().networkService),
+
         // Add other providers here if needed
       ],
       child: const MyApp(),
@@ -100,6 +110,8 @@ class MyApp extends StatelessWidget {
         '/dashboard': (context) => const DashboardPage(),
         '/update-password-in-app': (context) => const UpdatePasswordPage(),
         '/connections': (context) => const ConnectionsPage(), // Added route
+        '/community': (context) => const CommunityPage(),
+        '/network': (context) => const NetworkPage(),
       },
       initialRoute: '/',
     );
