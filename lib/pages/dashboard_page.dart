@@ -4,7 +4,6 @@ import 'package:sollylabs_discover/pages/connections_page.dart';
 
 import 'community_page.dart';
 import 'network_page.dart';
-import 'test_community_page.dart';
 import 'test_connection_page.dart';
 
 class DashboardPage extends StatelessWidget {
@@ -67,17 +66,6 @@ class DashboardPage extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const CommunityPage()),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.group),
-              label: const Text('Test Community'),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const TestCommunityPage()),
                 );
               },
             ),

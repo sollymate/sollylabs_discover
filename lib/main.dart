@@ -10,7 +10,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'database/database.dart';
 import 'database/services/connection_service.dart';
-import 'database/services/invitation_service.dart';
 import 'database/services/message_service.dart';
 import 'database/services/network_service.dart';
 import 'database/services/profile_service.dart';
@@ -73,7 +72,6 @@ Future<void> main() async {
             projectService: ProjectService(),
             projectPermissionService: ProjectPermissionService(),
             profileService: ProfileService(),
-            invitationService: InvitationService(),
             connectionService: ConnectionService(),
             messageService: MessageService(),
             communityService: CommunityService(),
