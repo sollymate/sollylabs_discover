@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:sollylabs_discover/src/core/authentication/services/auth_service.dart';
-import 'package:sollylabs_discover/src/core/authentication/views/otp_page.dart';
+import 'package:sollylabs_discover/src/core/navigation/route_names.dart';
 
 class ResetPasswordPage extends StatefulWidget {
   const ResetPasswordPage({super.key});
@@ -64,15 +65,20 @@ class ResetPasswordPageState extends State<ResetPasswordPage> {
                             await authService.requestPasswordResetOtp(
                               _emailController.text,
                             );
-                            if (mounted) {
-                              navigator.push(
-                                MaterialPageRoute(
-                                  builder: (context) => OtpPage(
-                                    email: _emailController.text,
-                                    isResetPassword: true,
-                                  ),
-                                ),
-                              );
+                            if (context.mounted) {
+                              context.push(RouteNames.otpPage, extra: {
+                                'email': _emailController.text,
+                                'isResetPassword': true,
+                              });
+
+                              // navigator.push(
+                              //   MaterialPageRoute(
+                              //     builder: (context) => OtpPage(
+                              //       email: _emailController.text,
+                              //       isResetPassword: true,
+                              //     ),
+                              //   ),
+                              // );
                             }
                           } catch (error) {
                             messenger.showSnackBar(

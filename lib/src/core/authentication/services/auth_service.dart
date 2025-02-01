@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:go_router/go_router.dart';
 import 'package:logging/logging.dart';
 import 'package:sollylabs_discover/main.dart';
+import 'package:sollylabs_discover/src/core/navigation/route_names.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService with ChangeNotifier {
@@ -54,15 +56,26 @@ class AuthService with ChangeNotifier {
   }
 
   void _navigateUser(AuthChangeEvent event, Session? session) {
-    final navigator = navigatorKey.currentState;
-    if (navigator == null) return; // Ensure navigation is available
+    final context = navigatorKey.currentContext;
+    if (context == null) return; // Ensure context is available
 
     if (session == null) {
-      navigator.pushReplacementNamed('/'); // ✅ Go to LoginPage (AuthGate)
+      context.go(RouteNames.authGate); // ✅ Go to LoginPage (AuthGate)
     } else {
-      navigator.pushReplacementNamed('/dashboard'); // ✅ Go to Dashboard
+      context.go(RouteNames.dashboardPage); // ✅ Go to Dashboard
     }
   }
+
+  // void _navigateUser(AuthChangeEvent event, Session? session) {
+  //   final navigator = navigatorKey.currentState;
+  //   if (navigator == null) return; // Ensure navigation is available
+  //
+  //   if (session == null) {
+  //     navigator.pushReplacementNamed('/'); // ✅ Go to LoginPage (AuthGate)
+  //   } else {
+  //     navigator.pushReplacementNamed('/dashboard'); // ✅ Go to Dashboard
+  //   }
+  // }
 
   User? get currentUser => _supabaseClient.auth.currentUser;
 

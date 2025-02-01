@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:sollylabs_discover/src/core/authentication/services/auth_service.dart';
-import 'package:sollylabs_discover/src/core/authentication/views/update_password_after_reset_page.dart';
+import 'package:sollylabs_discover/src/core/navigation/route_names.dart';
 
 class OtpPage extends StatefulWidget {
   final String email;
@@ -77,12 +78,14 @@ class OtpPageState extends State<OtpPage> {
                                 widget.email,
                                 _otpController.text,
                               );
-                              if (mounted) {
-                                navigator.push(
-                                  MaterialPageRoute(
-                                    builder: (context) => const UpdatePasswordAfterResetPage(),
-                                  ),
-                                );
+                              if (context.mounted) {
+                                context.push(RouteNames.updatePasswordAfterReset);
+
+                                // navigator.push(
+                                //   MaterialPageRoute(
+                                //     builder: (context) => const UpdatePasswordAfterResetPage(),
+                                //   ),
+                                // );
                               }
                             } else {
                               await authService.verifyOtp(

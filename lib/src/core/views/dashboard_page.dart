@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sollylabs_discover/src/features/profile/views/user_page.dart';
-
-import '../../features/network/views/network_page.dart';
-import '../../features/people/views/people_page.dart';
+import 'package:go_router/go_router.dart';
+import 'package:sollylabs_discover/src/core/navigation/route_names.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -23,7 +21,7 @@ class DashboardPage extends StatelessWidget {
               icon: const Icon(Icons.account_circle),
               label: const Text('Account'),
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const UserPage()));
+                context.push(RouteNames.userPage);
               },
             ),
             const SizedBox(height: 16),
@@ -31,10 +29,7 @@ class DashboardPage extends StatelessWidget {
               icon: const Icon(Icons.group),
               label: const Text('People'),
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const PeoplePage()),
-                );
+                context.push(RouteNames.peoplePage);
               },
             ),
             const SizedBox(height: 16),
@@ -42,10 +37,7 @@ class DashboardPage extends StatelessWidget {
               icon: const Icon(Icons.link), // ✅ New icon for NetworkPage
               label: const Text('Network'), // ✅ Button for NetworkPage
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const NetworkPage()),
-                );
+                context.push(RouteNames.networkPage);
               },
             ),
           ],

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:sollylabs_discover/src/core/authentication/services/auth_service.dart';
-import 'package:sollylabs_discover/src/core/authentication/views/otp_page.dart';
-import 'package:sollylabs_discover/src/core/authentication/views/reset_password_page.dart';
+import 'package:sollylabs_discover/src/core/navigation/route_names.dart';
 
 class SignInForm extends StatefulWidget {
   const SignInForm({super.key});
@@ -93,10 +93,12 @@ class SignInFormState extends State<SignInForm> with SingleTickerProviderStateMi
                     padding: const EdgeInsets.symmetric(vertical: 8.0),
                     child: GestureDetector(
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const ResetPasswordPage()),
-                        );
+                        context.push(RouteNames.resetPasswordPage);
+
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(builder: (context) => const ResetPasswordPage()),
+                        // );
                       },
                       child: const Text(
                         'Forgot Password?',
@@ -145,12 +147,16 @@ class SignInFormState extends State<SignInForm> with SingleTickerProviderStateMi
                           await authService.signInWithOtp(
                             _emailController.text,
                           );
-                          if (mounted) {
-                            navigator.push(
-                              MaterialPageRoute(
-                                builder: (context) => OtpPage(email: _emailController.text),
-                              ),
-                            );
+                          if (context.mounted) {
+                            context.push(RouteNames.otpPage, extra: {
+                              'email': _emailController.text,
+                            });
+
+                            // navigator.push(
+                            //   MaterialPageRoute(
+                            //     builder: (context) => OtpPage(email: _emailController.text),
+                            //   ),
+                            // );
                           }
                         }
                       } catch (e) {

@@ -1,11 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:sollylabs_discover/src/core/authentication/services/auth_service.dart';
-import 'package:sollylabs_discover/src/core/authentication/views/login_page.dart';
-import 'package:sollylabs_discover/src/core/authentication/views/otp_page.dart';
+import 'package:sollylabs_discover/src/core/navigation/route_names.dart';
 import 'package:sollylabs_discover/src/features/profile/models/user_profile.dart';
 import 'package:sollylabs_discover/src/global_state/app_services.dart';
 
@@ -249,11 +249,15 @@ class _UserPageState extends State<UserPage> {
 
                               // Explicitly navigate to LoginPage after successful sign out
                               if (context.mounted) {
-                                navigator.pushAndRemoveUntil(
-                                  MaterialPageRoute(builder: (context) => const LoginPage()),
-                                  (Route<dynamic> route) => false, // Remove all previous routes
-                                );
+                                context.go(RouteNames.loginPage); // ✅ Redirects to login and removes all previous routes
                               }
+
+                              // if (context.mounted) {
+                              //   navigator.pushAndRemoveUntil(
+                              //     MaterialPageRoute(builder: (context) => const LoginPage()),
+                              //     (Route<dynamic> route) => false, // Remove all previous routes
+                              //   );
+                              // }
                             } catch (e) {
                               messenger.showSnackBar(
                                 SnackBar(
@@ -290,16 +294,23 @@ class _UserPageState extends State<UserPage> {
                               await authService.requestPasswordResetOtp(
                                 authService.currentUser!.email!,
                               );
-                              if (mounted) {
-                                navigator.push(
-                                  MaterialPageRoute(
-                                    builder: (context) => OtpPage(
-                                      email: authService.currentUser!.email!,
-                                      isResetPassword: true,
-                                    ),
-                                  ),
-                                );
+                              if (context.mounted) {
+                                context.push(RouteNames.otpPage, extra: {
+                                  'email': authService.currentUser?.email ?? '',
+                                  'isResetPassword': true,
+                                });
                               }
+
+                              // if (mounted) {
+                              //   navigator.push(
+                              //     MaterialPageRoute(
+                              //       builder: (context) => OtpPage(
+                              //         email: authService.currentUser!.email!,
+                              //         isResetPassword: true,
+                              //       ),
+                              //     ),
+                              //   );
+                              // }
                             } catch (error) {
                               messenger.showSnackBar(
                                 SnackBar(
