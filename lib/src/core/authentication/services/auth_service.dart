@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
+import 'package:sollylabs_discover/main.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService with ChangeNotifier {
@@ -28,6 +29,17 @@ class AuthService with ChangeNotifier {
     });
   }
 
+  // void _handleAuthStateChange(AuthState data) {
+  //   final AuthChangeEvent event = data.event;
+  //   final Session? session = data.session;
+  //
+  //   _log.info('Auth Change Event: $event');
+  //   if (session != null) {
+  //     _log.info('Session: ${session.toJson()}');
+  //   }
+  //   notifyListeners();
+  // }
+
   void _handleAuthStateChange(AuthState data) {
     final AuthChangeEvent event = data.event;
     final Session? session = data.session;
@@ -36,7 +48,20 @@ class AuthService with ChangeNotifier {
     if (session != null) {
       _log.info('Session: ${session.toJson()}');
     }
+
     notifyListeners();
+    _navigateUser(event, session); // ✅ Call navigation function
+  }
+
+  void _navigateUser(AuthChangeEvent event, Session? session) {
+    final navigator = navigatorKey.currentState;
+    if (navigator == null) return; // Ensure navigation is available
+
+    if (session == null) {
+      navigator.pushReplacementNamed('/'); // ✅ Go to LoginPage (AuthGate)
+    } else {
+      navigator.pushReplacementNamed('/dashboard'); // ✅ Go to Dashboard
+    }
   }
 
   User? get currentUser => _supabaseClient.auth.currentUser;

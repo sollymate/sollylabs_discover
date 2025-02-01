@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +7,7 @@ import 'package:sollylabs_discover/src/core/authentication/views/update_password
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'src/core/authentication/views/update_password_page.dart';
+import 'src/core/config/supabase_setup.dart';
 import 'src/core/views/dashboard_page.dart';
 import 'src/features/network/services/network_service.dart';
 import 'src/features/network/views/network_page.dart';
@@ -28,40 +28,8 @@ Future<void> main() async {
   // Use path-based URLs for web (remove the #)
   usePathUrlStrategy();
 
-  await Supabase.initialize(
-    url: 'https://xxrsdsxpunwytsfizujp.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4cnNkc3hwdW53eXRzZml6dWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0NTQ5NjgsImV4cCI6MjA1MzAzMDk2OH0.39sq7-uHSVPcKN6fzGzLOPt4pUXi3bnn-F-eT6UFLfw',
-  ).then((_) {
-    // Handle redirect here after initialization
-    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-      final AuthChangeEvent event = data.event;
-      final Session? session = data.session;
+  await SupabaseSetup.initialize();
 
-      if (kDebugMode) {
-        print("Auth Change Event: $event");
-        print('Session: ${session?.toJson()}');
-      }
-
-      if (event == AuthChangeEvent.signedIn) {
-        // Navigate to account page only if there is a session
-        if (session != null) {
-          if (kDebugMode) {
-            print("Navigating to /account");
-          }
-          navigatorKey.currentState?.pushReplacementNamed('/account');
-        }
-      }
-      // else if (event == AuthChangeEvent.passwordRecovery) {
-      //   // Navigate to update password page
-      //   if (kDebugMode) {
-      //     print("Navigating to /update-password");
-      //   }
-      //   navigatorKey.currentState?.pushReplacementNamed('/update-password');
-      // }
-    });
-  });
-
-  // Initialize Remote Data Sources
   final peopleRemoteDataSource = PeopleRemoteDataSource();
 
   // Initialize Services
@@ -73,12 +41,7 @@ Future<void> main() async {
   final peopleRepository = PeopleRepository(peopleService: peopleService);
 
   // Initialize AppServices
-  final appServices = AppServices(
-    userService: userService,
-    peopleService: peopleService,
-    peopleRepository: peopleRepository,
-    networkService: networkService,
-  );
+  final appServices = AppServices(userService: userService, peopleService: peopleService, peopleRepository: peopleRepository, networkService: networkService);
 
   runApp(
     MultiProvider(
@@ -89,13 +52,7 @@ Future<void> main() async {
         Provider<PeopleService>(create: (context) => context.read<AppServices>().peopleService),
         Provider<NetworkService>(create: (context) => context.read<AppServices>().networkService),
         Provider<PeopleRepository>(create: (context) => context.read<AppServices>().peopleRepository),
-        // ChangeNotifierProvider(create: (context) => PeopleViewModel(peopleRepository: context.read<AppServices>().peopleRepository)),
-        ChangeNotifierProvider(
-          create: (context) => PeopleViewModel(
-            peopleRepository: context.read<AppServices>().peopleRepository,
-            networkService: context.read<AppServices>().networkService,
-          ),
-        ),
+        ChangeNotifierProvider(create: (context) => PeopleViewModel(peopleRepository: context.read<AppServices>().peopleRepository, networkService: context.read<AppServices>().networkService)),
         // Add other providers here if needed
       ],
       child: const MyApp(),
@@ -127,3 +84,38 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+// await Supabase.initialize(
+//   url: 'https://xxrsdsxpunwytsfizujp.supabase.co',
+//   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4cnNkc3hwdW53eXRzZml6dWpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0NTQ5NjgsImV4cCI6MjA1MzAzMDk2OH0.39sq7-uHSVPcKN6fzGzLOPt4pUXi3bnn-F-eT6UFLfw',
+// ).then((_) {
+//   // Handle redirect here after initialization
+//   Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+//     final AuthChangeEvent event = data.event;
+//     final Session? session = data.session;
+//
+//     if (kDebugMode) {
+//       print("Auth Change Event: $event");
+//       print('Session: ${session?.toJson()}');
+//     }
+//
+//     if (event == AuthChangeEvent.signedIn) {
+//       // Navigate to account page only if there is a session
+//       if (session != null) {
+//         if (kDebugMode) {
+//           print("Navigating to /account");
+//         }
+//         navigatorKey.currentState?.pushReplacementNamed('/account');
+//       }
+//     }
+//     // else if (event == AuthChangeEvent.passwordRecovery) {
+//     //   // Navigate to update password page
+//     //   if (kDebugMode) {
+//     //     print("Navigating to /update-password");
+//     //   }
+//     //   navigatorKey.currentState?.pushReplacementNamed('/update-password');
+//     // }
+//   });
+// });
+
+// Initialize Remote Data Sources

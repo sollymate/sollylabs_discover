@@ -34,7 +34,7 @@ class DashboardPage extends StatelessWidget {
             const SizedBox(height: 16),
             ElevatedButton.icon(
               icon: const Icon(Icons.group),
-              label: const Text('Community'),
+              label: const Text('People'),
               onPressed: () {
                 Navigator.push(
                   context,
