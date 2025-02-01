@@ -11,6 +11,8 @@ import 'src/core/authentication/views/update_password_page.dart';
 import 'src/core/views/dashboard_page.dart';
 import 'src/features/network/services/network_service.dart';
 import 'src/features/network/views/network_page.dart';
+import 'src/features/people/data/people_remote_data_source.dart';
+import 'src/features/people/repositories/people_repository.dart';
 import 'src/features/people/services/people_service.dart';
 import 'src/features/people/views/people_page.dart';
 import 'src/features/profile/services/user_service.dart';
@@ -58,17 +60,31 @@ Future<void> main() async {
     });
   });
 
+  // Initialize Remote Data Sources
+  final peopleRemoteDataSource = PeopleRemoteDataSource();
+
+  // Initialize Services
+  final peopleService = PeopleService(remoteDataSource: peopleRemoteDataSource);
+  final userService = UserService();
+  final networkService = NetworkService();
+
+  // Initialize Repository
+  final peopleRepository = PeopleRepository(peopleService: peopleService);
+
+  // Initialize AppServices
+  final appServices = AppServices(
+    userService: userService,
+    peopleService: peopleService,
+    peopleRepository: peopleRepository,
+    networkService: networkService,
+  );
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService(Supabase.instance.client)),
-        Provider<AppServices>(
-          create: (_) => AppServices(
-            userService: UserService(),
-            peopleService: PeopleService(),
-            networkService: NetworkService(),
-          ),
-        ),
+        ChangeNotifierProvider(create: (_) => AuthService(Supabase.instance.client)),
+        Provider<AppServices>(create: (_) => appServices),
         Provider<UserService>(create: (context) => context.read<AppServices>().userService),
         Provider<PeopleService>(create: (context) => context.read<AppServices>().peopleService),
         Provider<NetworkService>(create: (context) => context.read<AppServices>().networkService),

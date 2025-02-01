@@ -13,7 +13,7 @@ class PeoplePage extends StatefulWidget {
 }
 
 class _PeoplePageState extends State<PeoplePage> {
-  late PeopleService _communityService;
+  late PeopleService _peopleService;
   // late NetworkService _networkService;
   // late ConnectionService _connectionService;
   late NetworkService _networkService;
@@ -33,7 +33,7 @@ class _PeoplePageState extends State<PeoplePage> {
   void initState() {
     super.initState();
     final authService = Provider.of<AuthService>(context, listen: false);
-    _communityService = Provider.of<PeopleService>(context, listen: false);
+    _peopleService = Provider.of<PeopleService>(context, listen: false);
     // _networkService = Provider.of<CommunityService>(context, listen: false);
     _networkService = Provider.of<NetworkService>(context, listen: false);
     _currentUserId = authService.currentUser!.id;
@@ -56,7 +56,7 @@ class _PeoplePageState extends State<PeoplePage> {
 
     setState(() => _isLoading = true);
     try {
-      final profiles = await _communityService.getCommunityProfiles(
+      final profiles = await _peopleService.getCommunityProfiles(
         currentUserId: _currentUserId,
         searchQuery: _searchController.text,
         limit: _limit,
@@ -83,29 +83,6 @@ class _PeoplePageState extends State<PeoplePage> {
       setState(() => _isLoading = false);
     }
   }
-
-  /// ✅ Send connection request
-  // Future<void> _sendConnectionRequest(String targetUserId) async {
-  //   try {
-  //     await _connectionService.addConnection(_currentUserId, targetUserId);
-  //
-  //     setState(() {
-  //       _connectedUserIds.add(targetUserId); // ✅ Update UI
-  //     });
-  //
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(content: Text('Connection Added!')),
-  //       );
-  //     }
-  //   } catch (e) {
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         SnackBar(content: Text('Error sending request: $e')),
-  //       );
-  //     }
-  //   }
-  // }
 
   Future<void> _sendConnectionRequest(String targetUserId) async {
     try {
