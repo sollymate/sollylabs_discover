@@ -41,6 +41,7 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService(Supabase.instance.client)),
+
         Provider<AppServices>(create: (_) => appServices),
         Provider<UserService>(create: (context) => context.read<AppServices>().userService),
         Provider<PeopleService>(create: (context) => context.read<AppServices>().peopleService),

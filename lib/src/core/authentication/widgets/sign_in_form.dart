@@ -133,7 +133,7 @@ class SignInFormState extends State<SignInForm> with SingleTickerProviderStateMi
 
                       final authService = Provider.of<AuthService>(context, listen: false);
                       final messenger = ScaffoldMessenger.of(context);
-                      final navigator = Navigator.of(context);
+                      // final navigator = Navigator.of(context);
 
                       try {
                         if (_tabController.index == 1) {

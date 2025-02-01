@@ -71,13 +71,9 @@ class PeopleViewModel extends ChangeNotifier {
       // ✅ Refresh profiles to reflect connection change
       await fetchProfiles(currentUserId: currentUserId);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Connection Added!')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connection Added!')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error sending request: $e')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error sending request: $e')));
     }
   }
 }

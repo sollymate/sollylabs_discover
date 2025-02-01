@@ -59,7 +59,7 @@ class ResetPasswordPageState extends State<ResetPasswordPage> {
                           });
                           final authService = Provider.of<AuthService>(context, listen: false);
                           final messenger = ScaffoldMessenger.of(context);
-                          final navigator = Navigator.of(context);
+                          // final navigator = Navigator.of(context);
 
                           try {
                             await authService.requestPasswordResetOtp(

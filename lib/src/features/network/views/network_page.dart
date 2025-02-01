@@ -36,9 +36,7 @@ class _NetworkPageState extends State<NetworkPage> {
         _blockedConnections = connections.where((c) => c.isBlocked).toList();
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching network: $e')),
-      );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error fetching network: $e')));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -48,13 +46,9 @@ class _NetworkPageState extends State<NetworkPage> {
     try {
       await _networkService.removeUser(_currentUserId, otherUserId);
       _fetchNetwork(); // ✅ Refresh UI after removing a user
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User removed successfully!')),
-      );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User removed successfully!')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error removing user: $e')),
-      );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error removing user: $e')));
     }
   }
 
@@ -62,13 +56,9 @@ class _NetworkPageState extends State<NetworkPage> {
     try {
       await _networkService.blockUser(_currentUserId, otherUserId);
       _fetchNetwork(); // ✅ Refresh UI after blocking
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User blocked successfully!')),
-      );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User blocked successfully!')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error blocking user: $e')),
-      );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error blocking user: $e')));
     }
   }
 
@@ -76,13 +66,9 @@ class _NetworkPageState extends State<NetworkPage> {
     try {
       await _networkService.unblockUser(_currentUserId, otherUserId);
       _fetchNetwork(); // ✅ Refresh UI after unblocking
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User unblocked successfully!')),
-      );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User unblocked successfully!')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error unblocking user: $e')),
-      );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error unblocking user: $e')));
     }
   }
 

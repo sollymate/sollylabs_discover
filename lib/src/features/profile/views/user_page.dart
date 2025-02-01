@@ -243,7 +243,7 @@ class _UserPageState extends State<UserPage> {
 
                             final messenger = ScaffoldMessenger.of(context);
                             final authService = Provider.of<AuthService>(context, listen: false);
-                            final navigator = Navigator.of(context);
+                            // final navigator = Navigator.of(context);
                             try {
                               await authService.signOut();
 
@@ -289,7 +289,7 @@ class _UserPageState extends State<UserPage> {
                             });
                             final authService = Provider.of<AuthService>(context, listen: false);
                             final messenger = ScaffoldMessenger.of(context);
-                            final navigator = Navigator.of(context);
+                            // final navigator = Navigator.of(context);
                             try {
                               await authService.requestPasswordResetOtp(
                                 authService.currentUser!.email!,
