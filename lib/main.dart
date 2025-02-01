@@ -14,6 +14,7 @@ import 'src/features/network/views/network_page.dart';
 import 'src/features/people/data/people_remote_data_source.dart';
 import 'src/features/people/repositories/people_repository.dart';
 import 'src/features/people/services/people_service.dart';
+import 'src/features/people/view_models/people_view_model.dart';
 import 'src/features/people/views/people_page.dart';
 import 'src/features/profile/services/user_service.dart';
 import 'src/features/profile/views/user_page.dart';
@@ -83,12 +84,18 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService(Supabase.instance.client)),
-        ChangeNotifierProvider(create: (_) => AuthService(Supabase.instance.client)),
         Provider<AppServices>(create: (_) => appServices),
         Provider<UserService>(create: (context) => context.read<AppServices>().userService),
         Provider<PeopleService>(create: (context) => context.read<AppServices>().peopleService),
         Provider<NetworkService>(create: (context) => context.read<AppServices>().networkService),
-
+        Provider<PeopleRepository>(create: (context) => context.read<AppServices>().peopleRepository),
+        // ChangeNotifierProvider(create: (context) => PeopleViewModel(peopleRepository: context.read<AppServices>().peopleRepository)),
+        ChangeNotifierProvider(
+          create: (context) => PeopleViewModel(
+            peopleRepository: context.read<AppServices>().peopleRepository,
+            networkService: context.read<AppServices>().networkService,
+          ),
+        ),
         // Add other providers here if needed
       ],
       child: const MyApp(),
