@@ -8,19 +8,19 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:provider/provider.dart';
 import 'package:sollylabs_discover/auth/auth_gate.dart';
 import 'package:sollylabs_discover/auth/auth_service.dart';
+import 'package:sollylabs_discover/database/services/community_service.dart';
 import 'package:sollylabs_discover/pages/update_password_after_reset_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'database/database.dart';
 import 'database/services/connection_service.dart';
-import 'database/services/invitation_service.dart';
-import 'database/services/message_service.dart';
+import 'database/services/network_service.dart';
 import 'database/services/profile_service.dart';
 import 'database/services/project_permission_service.dart';
-import 'database/services/project_service.dart';
 import 'pages/account/account_page.dart';
-import 'pages/connections_page.dart';
+import 'pages/community_page.dart';
 import 'pages/dashboard_page.dart';
+import 'pages/network_page.dart';
 import 'pages/update_password_page.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -53,13 +53,14 @@ Future<void> main() async {
           }
           navigatorKey.currentState?.pushReplacementNamed('/account');
         }
-      } else if (event == AuthChangeEvent.passwordRecovery) {
-        // Navigate to update password page
-        if (kDebugMode) {
-          print("Navigating to /update-password");
-        }
-        navigatorKey.currentState?.pushReplacementNamed('/update-password');
       }
+      // else if (event == AuthChangeEvent.passwordRecovery) {
+      //   // Navigate to update password page
+      //   if (kDebugMode) {
+      //     print("Navigating to /update-password");
+      //   }
+      //   navigatorKey.currentState?.pushReplacementNamed('/update-password');
+      // }
     });
   });
 
@@ -69,16 +70,19 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => AuthService(Supabase.instance.client)),
         Provider<Database>(
           create: (_) => Database(
-            projectService: ProjectService(),
             projectPermissionService: ProjectPermissionService(),
             profileService: ProfileService(),
-            invitationService: InvitationService(),
             connectionService: ConnectionService(),
-            messageService: MessageService(),
+
+            communityService: CommunityService(),
+            networkService: NetworkService(), //
           ),
         ),
         Provider<ConnectionService>(create: (_) => ConnectionService()),
         Provider<ProfileService>(create: (context) => context.read<Database>().profileService),
+        Provider<CommunityService>(create: (context) => context.read<Database>().communityService),
+        Provider<NetworkService>(create: (context) => context.read<Database>().networkService),
+
         // Add other providers here if needed
       ],
       child: const MyApp(),
@@ -103,7 +107,8 @@ class MyApp extends StatelessWidget {
         '/update-password': (context) => const UpdatePasswordAfterResetPage(),
         '/dashboard': (context) => const DashboardPage(),
         '/update-password-in-app': (context) => const UpdatePasswordPage(),
-        '/connections': (context) => const ConnectionsPage(), // Added route
+        '/community': (context) => const CommunityPage(),
+        '/network': (context) => const NetworkPage(),
       },
       initialRoute: '/',
     );
@@ -865,32 +870,77 @@ class AuthService with ChangeNotifier {
     <source>database.dart</source>
     <document_content>
 import 'package:sollylabs_discover/database/services/connection_service.dart';
-import 'package:sollylabs_discover/database/services/invitation_service.dart';
-import 'package:sollylabs_discover/database/services/message_service.dart';
 import 'package:sollylabs_discover/database/services/profile_service.dart';
 import 'package:sollylabs_discover/database/services/project_permission_service.dart';
-import 'package:sollylabs_discover/database/services/project_service.dart';
+
+import 'services/community_service.dart';
+import 'services/network_service.dart';
 
 class Database {
-  final ProjectService projectService;
   final ProjectPermissionService projectPermissionService;
   final ProfileService profileService;
-  final InvitationService invitationService;
   final ConnectionService connectionService;
-  final MessageService messageService;
+  final CommunityService communityService;
+  final NetworkService networkService; // ✅ Add NetworkService
 
   Database({
-    required this.projectService,
     required this.projectPermissionService,
     required this.profileService,
-    required this.invitationService,
     required this.connectionService,
-    required this.messageService,
+    required this.communityService,
+    required this.networkService, // ✅ Initialize in constructor
   });
 }
     </document_content>
   </document>
   <document index="5">
+    <source>community_profile.dart</source>
+    <document_content>
+import 'package:uuid/uuid.dart';
+
+class CommunityProfile {
+  final UuidValue userId;
+  final String? email;
+  final String? displayId;
+  final String? fullName;
+  final String? avatarUrl;
+  final String? website;
+  final DateTime? updatedAt;
+  final bool isConnected;
+  final bool isBlocked;
+  final bool isBlockedBy;
+
+  CommunityProfile({
+    required this.userId,
+    this.email,
+    this.displayId,
+    this.fullName,
+    this.avatarUrl,
+    this.website,
+    this.updatedAt,
+    required this.isConnected,
+    required this.isBlocked,
+    required this.isBlockedBy,
+  });
+
+  factory CommunityProfile.fromJson(Map<String, dynamic> json) {
+    return CommunityProfile(
+      userId: UuidValue.fromString(json['user_id']),
+      email: json['email'],
+      displayId: json['display_id'],
+      fullName: json['full_name'],
+      avatarUrl: json['avatar_url'],
+      website: json['website'],
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
+      isConnected: json['is_connected'] ?? false,
+      isBlocked: json['is_blocked'] ?? false,
+      isBlockedBy: json['is_blocked_by'] ?? false,
+    );
+  }
+}
+    </document_content>
+  </document>
+  <document index="6">
     <source>connection.dart</source>
     <document_content>
 class Connection {
@@ -955,35 +1005,35 @@ class Connection {
 // }
     </document_content>
   </document>
-  <document index="6">
+  <document index="7">
     <source>connection_profile.dart</source>
     <document_content>
 import 'package:uuid/uuid.dart';
 
 class ConnectionProfile {
   final UuidValue connectionId;
-  final UuidValue userId;
-  final UuidValue otherUserId;
   final DateTime createdAt;
+  final UuidValue userId;
   final String userEmail;
   final String userDisplayId;
   final String userFullName;
   final String userWebsite;
+  final UuidValue otherUserId;
   final String otherUserEmail;
   final String otherUserDisplayId;
   final String otherUserFullName;
   final String otherUserWebsite;
-  final bool isBlocked; // ✅ New field to track blocked status
+  final bool isBlocked;
 
   ConnectionProfile({
     required this.connectionId,
-    required this.userId,
-    required this.otherUserId,
     required this.createdAt,
+    required this.userId,
     required this.userEmail,
     required this.userDisplayId,
     required this.userFullName,
     required this.userWebsite,
+    required this.otherUserId,
     required this.otherUserEmail,
     required this.otherUserDisplayId,
     required this.otherUserFullName,
@@ -994,18 +1044,18 @@ class ConnectionProfile {
   factory ConnectionProfile.fromJson(Map<String, dynamic> json) {
     return ConnectionProfile(
       connectionId: UuidValue.fromString(json['connection_id']),
-      userId: UuidValue.fromString(json['user_id']),
-      otherUserId: UuidValue.fromString(json['other_user_id']),
       createdAt: DateTime.parse(json['created_at']),
-      userEmail: json['user_email'] ?? '',
-      userDisplayId: json['user_display_id'] ?? '',
-      userFullName: json['user_full_name'] ?? '',
+      userId: UuidValue.fromString(json['user_id']),
+      userEmail: json['user_email'] ?? 'No Email', // ✅ Prevents null errors
+      userDisplayId: json['user_display_id'] ?? 'Unknown',
+      userFullName: json['user_full_name'] ?? 'No Name',
       userWebsite: json['user_website'] ?? '',
-      otherUserEmail: json['other_user_email'] ?? '',
-      otherUserDisplayId: json['other_user_display_id'] ?? '',
-      otherUserFullName: json['other_user_full_name'] ?? '',
+      otherUserId: UuidValue.fromString(json['other_user_id']),
+      otherUserEmail: json['other_user_email'] ?? 'No Email',
+      otherUserDisplayId: json['other_user_display_id'] ?? 'Unknown',
+      otherUserFullName: json['other_user_full_name'] ?? 'No Name',
       otherUserWebsite: json['other_user_website'] ?? '',
-      isBlocked: json['is_blocked'] ?? false, // ✅ Default to false if null
+      isBlocked: json['is_blocked'] ?? false,
     );
   }
 }
@@ -1014,38 +1064,50 @@ class ConnectionProfile {
 //
 // class ConnectionProfile {
 //   final UuidValue connectionId;
-//   final UuidValue userId;
-//   final UuidValue otherUserId;
 //   final DateTime createdAt;
-//   final String? otherUserEmail;
+//   final UuidValue userId;
+//   final String userEmail;
+//   final String? userDisplayId;
+//   final String? userFullName;
+//   final String? userWebsite;
+//   final UuidValue otherUserId;
+//   final String otherUserEmail;
 //   final String? otherUserDisplayId;
 //   final String? otherUserFullName;
 //   final String? otherUserWebsite;
-//   final bool isBlocked; // ✅ New field to track blocked status
+//   final bool isBlocked;
 //
 //   ConnectionProfile({
 //     required this.connectionId,
-//     required this.userId,
-//     required this.otherUserId,
 //     required this.createdAt,
-//     this.otherUserEmail,
+//     required this.userId,
+//     required this.userEmail,
+//     this.userDisplayId,
+//     this.userFullName,
+//     this.userWebsite,
+//     required this.otherUserId,
+//     required this.otherUserEmail,
 //     this.otherUserDisplayId,
 //     this.otherUserFullName,
 //     this.otherUserWebsite,
-//     required this.isBlocked, // ✅ Now required in constructor
+//     required this.isBlocked,
 //   });
 //
 //   factory ConnectionProfile.fromJson(Map<String, dynamic> json) {
 //     return ConnectionProfile(
 //       connectionId: UuidValue.fromString(json['connection_id']),
-//       userId: UuidValue.fromString(json['user_id']),
-//       otherUserId: UuidValue.fromString(json['other_user_id']),
 //       createdAt: DateTime.parse(json['created_at']),
-//       otherUserEmail: json['other_user_email'] ?? '',
-//       otherUserDisplayId: json['other_user_display_id'] ?? '',
-//       otherUserFullName: json['other_user_full_name'] ?? '',
-//       otherUserWebsite: json['other_user_website'] ?? '',
-//       isBlocked: json['is_blocked'] ?? false, // ✅ Ensure default value if null
+//       userId: UuidValue.fromString(json['user_id']),
+//       userEmail: json['user_email'],
+//       userDisplayId: json['user_display_id'],
+//       userFullName: json['user_full_name'],
+//       userWebsite: json['user_website'],
+//       otherUserId: UuidValue.fromString(json['other_user_id']),
+//       otherUserEmail: json['other_user_email'],
+//       otherUserDisplayId: json['other_user_display_id'],
+//       otherUserFullName: json['other_user_full_name'],
+//       otherUserWebsite: json['other_user_website'],
+//       isBlocked: json['is_blocked'] ?? false,
 //     );
 //   }
 // }
@@ -1054,7 +1116,7 @@ class ConnectionProfile {
 // //
 // // class ConnectionProfile {
 // //   final UuidValue connectionId;
-// //   final UuidValue userId; // ✅ This replaces user1Id and user2Id
+// //   final UuidValue userId;
 // //   final UuidValue otherUserId;
 // //   final DateTime createdAt;
 // //   final String userEmail;
@@ -1065,6 +1127,7 @@ class ConnectionProfile {
 // //   final String otherUserDisplayId;
 // //   final String otherUserFullName;
 // //   final String otherUserWebsite;
+// //   final bool isBlocked; // ✅ New field to track blocked status
 // //
 // //   ConnectionProfile({
 // //     required this.connectionId,
@@ -1079,6 +1142,7 @@ class ConnectionProfile {
 // //     required this.otherUserDisplayId,
 // //     required this.otherUserFullName,
 // //     required this.otherUserWebsite,
+// //     required this.isBlocked,
 // //   });
 // //
 // //   factory ConnectionProfile.fromJson(Map<String, dynamic> json) {
@@ -1095,104 +1159,138 @@ class ConnectionProfile {
 // //       otherUserDisplayId: json['other_user_display_id'] ?? '',
 // //       otherUserFullName: json['other_user_full_name'] ?? '',
 // //       otherUserWebsite: json['other_user_website'] ?? '',
+// //       isBlocked: json['is_blocked'] ?? false, // ✅ Default to false if null
 // //     );
 // //   }
 // // }
-    </document_content>
-  </document>
-  <document index="7">
-    <source>invitation.dart</source>
-    <document_content>
-import 'package:uuid/uuid.dart';
-
-enum InvitationStatus {
-  pending,
-  accepted,
-  declined,
-}
-
-class Invitation {
-  final UuidValue id;
-  final UuidValue projectId;
-  final String senderId;
-  final String recipientEmail;
-  final String role;
-  final InvitationStatus status;
-  final DateTime createdAt;
-  final DateTime? updatedAt;
-
-  Invitation({required this.id, required this.projectId, required this.senderId, required this.recipientEmail, required this.role, required this.status, required this.createdAt, this.updatedAt});
-
-  factory Invitation.fromJson(Map<String, dynamic> json) {
-    return Invitation(
-      id: UuidValue.fromString(json['id']),
-      projectId: UuidValue.fromString(json['project_id']),
-      senderId: json['sender_id'],
-      recipientEmail: json['recipient_email'],
-      role: json['role'],
-      status: InvitationStatus.values.firstWhere((e) => e.toString().split('.').last == json['status']),
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id.uuid,
-      'project_id': projectId.uuid,
-      'sender_id': senderId,
-      'recipient_email': recipientEmail,
-      'role': role,
-      'status': status.toString().split('.').last,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt?.toIso8601String(),
-    };
-  }
-}
+// //
+// // // import 'package:uuid/uuid.dart';
+// // //
+// // // class ConnectionProfile {
+// // //   final UuidValue connectionId;
+// // //   final UuidValue userId;
+// // //   final UuidValue otherUserId;
+// // //   final DateTime createdAt;
+// // //   final String? otherUserEmail;
+// // //   final String? otherUserDisplayId;
+// // //   final String? otherUserFullName;
+// // //   final String? otherUserWebsite;
+// // //   final bool isBlocked; // ✅ New field to track blocked status
+// // //
+// // //   ConnectionProfile({
+// // //     required this.connectionId,
+// // //     required this.userId,
+// // //     required this.otherUserId,
+// // //     required this.createdAt,
+// // //     this.otherUserEmail,
+// // //     this.otherUserDisplayId,
+// // //     this.otherUserFullName,
+// // //     this.otherUserWebsite,
+// // //     required this.isBlocked, // ✅ Now required in constructor
+// // //   });
+// // //
+// // //   factory ConnectionProfile.fromJson(Map<String, dynamic> json) {
+// // //     return ConnectionProfile(
+// // //       connectionId: UuidValue.fromString(json['connection_id']),
+// // //       userId: UuidValue.fromString(json['user_id']),
+// // //       otherUserId: UuidValue.fromString(json['other_user_id']),
+// // //       createdAt: DateTime.parse(json['created_at']),
+// // //       otherUserEmail: json['other_user_email'] ?? '',
+// // //       otherUserDisplayId: json['other_user_display_id'] ?? '',
+// // //       otherUserFullName: json['other_user_full_name'] ?? '',
+// // //       otherUserWebsite: json['other_user_website'] ?? '',
+// // //       isBlocked: json['is_blocked'] ?? false, // ✅ Ensure default value if null
+// // //     );
+// // //   }
+// // // }
+// // //
+// // // // import 'package:uuid/uuid.dart';
+// // // //
+// // // // class ConnectionProfile {
+// // // //   final UuidValue connectionId;
+// // // //   final UuidValue userId; // ✅ This replaces user1Id and user2Id
+// // // //   final UuidValue otherUserId;
+// // // //   final DateTime createdAt;
+// // // //   final String userEmail;
+// // // //   final String userDisplayId;
+// // // //   final String userFullName;
+// // // //   final String userWebsite;
+// // // //   final String otherUserEmail;
+// // // //   final String otherUserDisplayId;
+// // // //   final String otherUserFullName;
+// // // //   final String otherUserWebsite;
+// // // //
+// // // //   ConnectionProfile({
+// // // //     required this.connectionId,
+// // // //     required this.userId,
+// // // //     required this.otherUserId,
+// // // //     required this.createdAt,
+// // // //     required this.userEmail,
+// // // //     required this.userDisplayId,
+// // // //     required this.userFullName,
+// // // //     required this.userWebsite,
+// // // //     required this.otherUserEmail,
+// // // //     required this.otherUserDisplayId,
+// // // //     required this.otherUserFullName,
+// // // //     required this.otherUserWebsite,
+// // // //   });
+// // // //
+// // // //   factory ConnectionProfile.fromJson(Map<String, dynamic> json) {
+// // // //     return ConnectionProfile(
+// // // //       connectionId: UuidValue.fromString(json['connection_id']),
+// // // //       userId: UuidValue.fromString(json['user_id']),
+// // // //       otherUserId: UuidValue.fromString(json['other_user_id']),
+// // // //       createdAt: DateTime.parse(json['created_at']),
+// // // //       userEmail: json['user_email'] ?? '',
+// // // //       userDisplayId: json['user_display_id'] ?? '',
+// // // //       userFullName: json['user_full_name'] ?? '',
+// // // //       userWebsite: json['user_website'] ?? '',
+// // // //       otherUserEmail: json['other_user_email'] ?? '',
+// // // //       otherUserDisplayId: json['other_user_display_id'] ?? '',
+// // // //       otherUserFullName: json['other_user_full_name'] ?? '',
+// // // //       otherUserWebsite: json['other_user_website'] ?? '',
+// // // //     );
+// // // //   }
+// // // // }
     </document_content>
   </document>
   <document index="8">
-    <source>message.dart</source>
+    <source>network_model.dart</source>
     <document_content>
 import 'package:uuid/uuid.dart';
 
-class Message {
-  final UuidValue id;
-  final UuidValue connectionId;
-  final UuidValue senderId;
-  final String? message;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
+class NetworkModel {
+  final UuidValue networkId;
+  final UuidValue userId;
+  final UuidValue otherUserId;
+  final String otherUserEmail;
+  final String otherUserDisplayId;
+  final String otherUserFullName;
+  final String otherUserWebsite;
+  final bool isBlocked;
 
-  Message({
-    required this.id,
-    required this.connectionId,
-    required this.senderId,
-    this.message,
-    this.createdAt,
-    this.updatedAt,
+  NetworkModel({
+    required this.networkId,
+    required this.userId,
+    required this.otherUserId,
+    required this.otherUserEmail,
+    required this.otherUserDisplayId,
+    required this.otherUserFullName,
+    required this.otherUserWebsite,
+    required this.isBlocked,
   });
 
-  factory Message.fromJson(Map<String, dynamic> json) {
-    return Message(
-      id: UuidValue.fromString(json['id']),
-      connectionId: UuidValue.fromString(json['connection_id']),
-      senderId: UuidValue.fromString(json['sender_id']),
-      message: json['message'],
-      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
-      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
+  factory NetworkModel.fromJson(Map<String, dynamic> json) {
+    return NetworkModel(
+      networkId: UuidValue.fromString(json['connection_id']),
+      userId: UuidValue.fromString(json['user_id']),
+      otherUserId: UuidValue.fromString(json['other_user_id']),
+      otherUserEmail: json['other_user_email'] ?? 'No Email',
+      otherUserDisplayId: json['other_user_display_id'] ?? 'Unknown',
+      otherUserFullName: json['other_user_full_name'] ?? 'No Name',
+      otherUserWebsite: json['other_user_website'] ?? '',
+      isBlocked: json['is_blocked'] ?? false,
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id.uuid,
-      'connection_id': connectionId.uuid,
-      'sender_id': senderId.uuid,
-      'message': message,
-      'created_at': createdAt?.toIso8601String(),
-      'updated_at': updatedAt?.toIso8601String(),
-    };
   }
 }
     </document_content>
@@ -1487,8 +1585,38 @@ class ProjectPermission {
     </document_content>
   </document>
   <document index="12">
+    <source>community_service.dart</source>
+    <document_content>
+import 'package:sollylabs_discover/database/models/community_profile.dart';
+import 'package:sollylabs_discover/global/globals.dart';
+
+class CommunityService {
+  /// ✅ Fetch profiles from `community` view
+  Future<List<CommunityProfile>> getCommunityProfiles({
+    required String currentUserId,
+    String? searchQuery,
+    int? limit,
+    int offset = 0,
+  }) async {
+    var query = globals.supabaseClient.from('community').select('user_id, email, display_id, full_name, avatar_url, website, updated_at, is_connected, is_blocked, is_blocked_by').neq('user_id', currentUserId); // Exclude the current user
+
+    // Apply search if provided (Temporary: ilike-based, FTS will be added later)
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      query = query.or('email.ilike.%$searchQuery%,display_id.ilike.%$searchQuery%,website.ilike.%$searchQuery%');
+    }
+
+    // Apply pagination if a limit is specified
+    final response = limit != null ? await query.range(offset, offset + limit - 1) : await query;
+
+    return response.map<CommunityProfile>((data) => CommunityProfile.fromJson(data)).toList();
+  }
+}
+    </document_content>
+  </document>
+  <document index="13">
     <source>connection_service.dart</source>
     <document_content>
+import 'package:flutter/material.dart';
 import 'package:sollylabs_discover/database/models/connection_profile.dart';
 import 'package:sollylabs_discover/global/globals.dart';
 
@@ -1503,6 +1631,30 @@ class ConnectionService {
     final response = await query;
 
     return response.map<ConnectionProfile>((data) => ConnectionProfile.fromJson(data)).toList();
+  }
+
+  Future<void> blockUser(String blockerId, String blockedId) async {
+    debugPrint('🔹 Checking if user $blockedId is already blocked by $blockerId');
+
+    final existingBlock = await globals.supabaseClient.from('blocked_users').select().eq('blocker_id', blockerId).eq('blocked_id', blockedId).maybeSingle();
+
+    if (existingBlock != null) {
+      debugPrint('⚠️ User $blockedId is already blocked by $blockerId.');
+      throw Exception('User is already blocked.');
+    }
+
+    final response = await globals.supabaseClient.from('blocked_users').insert({
+      'blocker_id': blockerId,
+      'blocked_id': blockedId,
+      'created_at': DateTime.now().toIso8601String(),
+    });
+
+    if (response.error != null) {
+      debugPrint('❌ Error blocking user: ${response.error!.message}');
+      throw Exception('Failed to block user: ${response.error!.message}');
+    }
+
+    debugPrint('✅ User $blockedId successfully blocked by $blockerId');
   }
 
   Future<void> blockConnection(String connectionId) async {
@@ -1529,26 +1681,44 @@ class ConnectionService {
     }
   }
 
-  // Future<void> blockConnection(String connectionId) async {
-  //   final response = await globals.supabaseClient.from('connections').update({'blocked': true}).eq('id', connectionId).select();
-  //
-  //   if (response.isEmpty) {
-  //     throw Exception('Failed to block user');
-  //   }
-  // }
-  //
-  // Future<void> unblockConnection(String connectionId) async {
-  //   final response = await globals.supabaseClient.from('connections').update({'blocked': false}).eq('id', connectionId).select();
-  //
-  //   if (response.isEmpty) {
-  //     throw Exception('Failed to unblock user');
-  //   }
-  // }
+  Future<void> removeConnection(String userId, String otherUserId) async {
+    debugPrint('🔹 Checking if connection exists between $userId and $otherUserId');
 
-  Future<bool> removeConnection(String connectionId) async {
-    final response = await globals.supabaseClient.from('connections').delete().eq('id', connectionId).select();
+    final existingConnection = await globals.supabaseClient.from('connections').select().or('user1_id.eq.$userId,user2_id.eq.$userId').or('user1_id.eq.$otherUserId,user2_id.eq.$otherUserId').maybeSingle();
 
-    return response.isNotEmpty; // Returns `true` if deletion was successful
+    if (existingConnection == null) {
+      debugPrint('⚠️ No connection exists between $userId and $otherUserId.');
+      throw Exception('Connection does not exist.');
+    }
+
+    final response = await globals.supabaseClient.from('connections').delete().or('user1_id.eq.$userId,user2_id.eq.$userId').or('user1_id.eq.$otherUserId,user2_id.eq.$otherUserId');
+
+    if (response.error != null) {
+      debugPrint('❌ Error removing connection: ${response.error!.message}');
+      throw Exception('Failed to remove connection: ${response.error!.message}');
+    }
+
+    debugPrint('✅ Connection successfully removed between $userId and $otherUserId');
+  }
+
+  Future<void> unblockUser(String blockerId, String blockedId) async {
+    debugPrint('🔹 Attempting to unblock user: $blockedId');
+
+    final existingBlock = await globals.supabaseClient.from('blocked_users').select().eq('blocker_id', blockerId).eq('blocked_id', blockedId).maybeSingle();
+
+    if (existingBlock == null) {
+      debugPrint('⚠️ User $blockedId is not blocked by $blockerId.');
+      throw Exception('User is not blocked.');
+    }
+
+    final response = await globals.supabaseClient.from('blocked_users').delete().eq('blocker_id', blockerId).eq('blocked_id', blockedId);
+
+    if (response.error != null) {
+      debugPrint('❌ Error unblocking user: ${response.error!.message}');
+      throw Exception('Failed to unblock user: ${response.error!.message}');
+    }
+
+    debugPrint('✅ Successfully unblocked user: $blockedId');
   }
 
   Future<void> addConnection(String userId, String targetUserId) async {
@@ -1567,117 +1737,75 @@ class ConnectionService {
 }
     </document_content>
   </document>
-  <document index="13">
-    <source>invitation_service.dart</source>
-    <document_content>
-import 'package:sollylabs_discover/database/models/invitation.dart';
-import 'package:sollylabs_discover/database/models/project_permission.dart';
-import 'package:sollylabs_discover/global/globals.dart';
-import 'package:uuid/uuid.dart';
-
-class InvitationService {
-  // Method to create an invitation
-  Future<Invitation> createInvitation({
-    required String projectId,
-    required String senderId,
-    required String recipientEmail,
-    required String role,
-  }) async {
-    final invitation = Invitation(
-      id: UuidValue.fromString(const Uuid().v4()),
-      projectId: UuidValue.fromString(projectId),
-      senderId: senderId,
-      recipientEmail: recipientEmail,
-      role: role,
-      status: InvitationStatus.pending,
-      createdAt: DateTime.now(),
-    );
-
-    final response = await globals.supabaseClient.from('invitations').insert(invitation.toJson()).select();
-    return Invitation.fromJson(response[0]);
-  }
-
-  // Method to get an invitation by ID
-  Future<Invitation> getInvitation(String id) async {
-    final response = await globals.supabaseClient.from('invitations').select().eq('id', id).single();
-    return Invitation.fromJson(response);
-  }
-
-  // Method to update the status of an invitation
-  Future<Invitation> updateInvitationStatus(String id, InvitationStatus status) async {
-    final response = await globals.supabaseClient.from('invitations').update({'status': status.toString().split('.').last}).eq('id', id).select();
-    return Invitation.fromJson(response[0]);
-  }
-
-  // Method to delete an invitation
-  Future<void> deleteInvitation(String id) async {
-    await globals.supabaseClient.from('invitations').delete().eq('id', id);
-  }
-
-  // Method to get all invitations for a user by email
-  Future<List<Invitation>> getInvitationsForUser(String email) async {
-    final response = await globals.supabaseClient.from('invitations').select().eq('recipient_email', email);
-    List<Invitation> invitations = [];
-    for (final invitation in response) {
-      invitations.add(Invitation.fromJson(invitation));
-    }
-    return invitations;
-  }
-
-  // Method to handle invitation acceptance
-  Future<void> acceptInvitation(String invitationId) async {
-    final invitation = await getInvitation(invitationId);
-    final projectPermission = ProjectPermission(
-      id: UuidValue.fromString(const Uuid().v4()),
-      projectId: invitation.projectId,
-      userId: UuidValue.fromString(globals.supabaseClient.auth.currentUser!.id),
-      role: invitation.role,
-      createdAt: DateTime.now(),
-    );
-    await createProjectPermission(projectPermission);
-    await updateInvitationStatus(invitationId, InvitationStatus.accepted);
-  }
-
-  Future<ProjectPermission> createProjectPermission(ProjectPermission projectPermission) async {
-    final response = await globals.supabaseClient.from('project_permissions').insert(projectPermission.toJson()).select();
-    return ProjectPermission.fromJson(response[0]);
-  }
-}
-    </document_content>
-  </document>
   <document index="14">
-    <source>message_service.dart</source>
+    <source>network_service.dart</source>
     <document_content>
-import 'package:sollylabs_discover/database/models/message.dart';
+import 'package:sollylabs_discover/database/models/network_model.dart';
 import 'package:sollylabs_discover/global/globals.dart';
-import 'package:uuid/uuid.dart';
 
-class MessageService {
-  Future<List<Message>> getMessages(String connectionId) async {
-    final response = await globals.supabaseClient.from('messages').select().eq('connection_id', connectionId).order('created_at', ascending: true);
+class NetworkService {
+  /// ✅ Fetch active network connections (non-blocked)
+  Future<List<NetworkModel>> getNetwork({required String currentUserId}) async {
+    try {
+      final response = await globals.supabaseClient.from('network').select().eq('user_id', currentUserId); // ✅ Filter by authenticated user
 
-    List<Message> messages = [];
-    for (final message in response) {
-      messages.add(Message.fromJson(message));
+      return response.map<NetworkModel>((data) => NetworkModel.fromJson(data)).toList();
+    } catch (e) {
+      throw Exception('Error fetching network connections: $e');
     }
-    return messages;
   }
 
-  Future<Message> sendMessage(String connectionId, String senderId, String messageText) async {
-    final message = Message(
-      id: UuidValue.fromString(const Uuid().v4()),
-      connectionId: UuidValue.fromString(connectionId),
-      senderId: UuidValue.fromString(senderId),
-      message: messageText,
-      createdAt: DateTime.now(),
-    );
+  Future<void> removeUser(String userId, String otherUserId) async {
+    try {
+      final existingConnection = await globals.supabaseClient.from('connections').select().or('user1_id.eq.$userId,user2_id.eq.$userId').or('user1_id.eq.$otherUserId,user2_id.eq.$otherUserId').maybeSingle();
 
-    final response = await globals.supabaseClient.from('messages').insert(message.toJson()).select();
+      if (existingConnection == null) {
+        throw Exception('Connection does not exist.');
+      }
 
-    return Message.fromJson(response[0]);
+      final response = await globals.supabaseClient.from('connections').delete().or('user1_id.eq.$userId,user2_id.eq.$userId').or('user1_id.eq.$otherUserId,user2_id.eq.$otherUserId').select();
+
+      if (response.isEmpty) {
+        throw Exception('Failed to remove connection');
+      }
+    } catch (e) {
+      throw Exception('Error removing user: $e');
+    }
   }
 
-// Add other methods for managing messages as needed, like deleting or updating messages
+  /// ✅ Block a user
+  Future<void> blockUser(String blockerId, String blockedId) async {
+    final existingBlock = await globals.supabaseClient.from('blocked_users').select().eq('blocker_id', blockerId).eq('blocked_id', blockedId).maybeSingle();
+
+    if (existingBlock != null) {
+      throw Exception('User is already blocked.');
+    }
+
+    final response = await globals.supabaseClient.from('blocked_users').insert({
+      'blocker_id': blockerId,
+      'blocked_id': blockedId,
+      'created_at': DateTime.now().toIso8601String(),
+    }).select();
+
+    if (response.isEmpty) {
+      throw Exception('Failed to block user: $response');
+    }
+  }
+
+  /// ✅ Unblock a user
+  Future<void> unblockUser(String blockerId, String blockedId) async {
+    final existingBlock = await globals.supabaseClient.from('blocked_users').select().eq('blocker_id', blockerId).eq('blocked_id', blockedId).maybeSingle();
+
+    if (existingBlock == null) {
+      throw Exception('User is not blocked.');
+    }
+
+    final response = await globals.supabaseClient.from('blocked_users').delete().eq('blocker_id', blockerId).eq('blocked_id', blockedId).select();
+
+    if (response.isEmpty) {
+      throw Exception('Failed to unblock user: $response');
+    }
+  }
 }
     </document_content>
   </document>
@@ -1706,40 +1834,6 @@ class ProfileService {
 
     return response.isNotEmpty ? response.map<Profile>((data) => Profile.fromJson(data)).toList() : [];
   }
-  // Future<List<Profile>> getAllProfiles({required String currentUserId, String? searchQuery, int? limit, int offset = 0}) async {
-  //   var query = globals.supabaseClient.from('profiles').select('id, email, display_id, full_name, avatar_url, updated_at, connections!left(user1_id, user2_id)').neq('id', currentUserId); // ✅ Exclude current user
-  //
-  //   if (searchQuery != null && searchQuery.isNotEmpty) {
-  //     query = query.or('email.ilike.%$searchQuery%,display_id.ilike.%$searchQuery%,website.ilike.%$searchQuery%'); // ✅ Filter at DB level
-  //   }
-  //
-  //   final response = limit != null
-  //       ? await query.range(offset, offset + limit - 1) // ✅ Use correct offset for pagination
-  //       : await query;
-  //
-  //   return response.isNotEmpty
-  //       ? response.map<Profile>((data) {
-  //           return Profile.fromJson({
-  //             ...data,
-  //             'is_connected': data['is_connected'] != null, // ✅ If connection exists, mark as connected
-  //           });
-  //         }).toList()
-  //       : [];
-  // }
-
-  // Future<List<Profile>> getAllProfiles({String? searchQuery, int? limit, int offset = 0}) async {
-  //   var query = globals.supabaseClient.from('profiles').select('id, email, display_id, full_name, avatar_url, updated_at');
-  //
-  //   if (searchQuery != null && searchQuery.isNotEmpty) {
-  //     query = query.or('email.ilike.%$searchQuery%,display_id.ilike.%$searchQuery%,website.ilike.%$searchQuery%'); // ✅ Filter at DB level
-  //   }
-  //
-  //   final response = limit != null
-  //       ? await query.range(offset, offset + limit - 1) // ✅ Use correct offset for pagination
-  //       : await query;
-  //
-  //   return response.isNotEmpty ? response.map<Profile>((data) => Profile.fromJson(data)).toList() : [];
-  // }
 
   /// ✅ **Upload User Avatar**
   Future<String?> uploadAvatar(String userId, File imageFile) async {
@@ -1868,54 +1962,6 @@ class ProjectPermissionService {
     </document_content>
   </document>
   <document index="17">
-    <source>project_service.dart</source>
-    <document_content>
-import 'package:sollylabs_discover/database/models/project.dart';
-import 'package:sollylabs_discover/global/globals.dart';
-
-class ProjectService {
-  Future<List<Project>> getProjects() async {
-    final response = await globals.supabaseClient.from('project_list').select().order('created_at', ascending: false);
-    List<Project> projects = [];
-    for (final project in response) {
-      projects.add(Project.fromJson(project));
-    }
-    return projects;
-  }
-
-  Future<Project> getProject(String id) async {
-    final response = await globals.supabaseClient.from('project_list').select().eq('id', id).single();
-    return Project.fromJson(response);
-  }
-
-  Future<Project> createProject(Project project) async {
-    final user = globals.supabaseClient.auth.currentUser;
-    if (user == null) {
-      throw Exception('User not logged in');
-    }
-
-    final projectData = project.toJson();
-    projectData['created_by'] = user.id;
-    projectData['owner_id'] = user.id; // Set owner_id to current user's ID
-    projectData.remove('id'); // Remove the ID from the JSON
-
-    final response = await globals.supabaseClient.from('project_list').insert(projectData).select();
-
-    return Project.fromJson(response[0]);
-  }
-
-  Future<Project> updateProject(Project project) async {
-    final response = await globals.supabaseClient.from('project_list').update(project.toJson()).eq('id', project.id.uuid).select();
-    return Project.fromJson(response[0]);
-  }
-
-  Future<void> deleteProject(String id) async {
-    await globals.supabaseClient.from('project_list').delete().eq('id', id);
-  }
-}
-    </document_content>
-  </document>
-  <document index="18">
     <source>globals.dart</source>
     <document_content>
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -1927,15 +1973,15 @@ class Globals {
 final globals = Globals();
     </document_content>
   </document>
-  <document index="19">
+  <document index="18">
     <source>community_page.dart</source>
     <document_content>
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sollylabs_discover/auth/auth_service.dart';
-import 'package:sollylabs_discover/database/models/profile.dart';
+import 'package:sollylabs_discover/database/models/community_profile.dart';
+import 'package:sollylabs_discover/database/services/community_service.dart';
 import 'package:sollylabs_discover/database/services/connection_service.dart';
-import 'package:sollylabs_discover/database/services/profile_service.dart';
 
 class CommunityPage extends StatefulWidget {
   const CommunityPage({super.key});
@@ -1945,30 +1991,29 @@ class CommunityPage extends StatefulWidget {
 }
 
 class _CommunityPageState extends State<CommunityPage> {
-  late ProfileService _profileService;
+  late CommunityService _communityService;
   late ConnectionService _connectionService;
   late String _currentUserId;
   late String _currentUserEmail;
-  List<Profile> _profiles = [];
+  List<CommunityProfile> _profiles = [];
   Set<String> _connectedUserIds = {};
   Set<String> _blockedUserIds = {}; // ✅ Store blocked users
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
 
   final int _limit = 5; // Load 5 profiles per request
-  int _offset = 0; // Track loaded profiles count
+  int _offset = 0;
   bool _hasMore = true;
 
   @override
   void initState() {
     super.initState();
     final authService = Provider.of<AuthService>(context, listen: false);
-    _profileService = Provider.of<ProfileService>(context, listen: false);
+    _communityService = Provider.of<CommunityService>(context, listen: false);
     _connectionService = Provider.of<ConnectionService>(context, listen: false);
     _currentUserId = authService.currentUser!.id;
     _currentUserEmail = authService.currentUser!.email ?? 'No Email';
 
-    _fetchConnections();
     _fetchProfiles();
   }
 
@@ -1978,24 +2023,7 @@ class _CommunityPageState extends State<CommunityPage> {
     super.dispose();
   }
 
-  /// ✅ Fetch connections and blocked users
-  Future<void> _fetchConnections() async {
-    try {
-      final connections = await _connectionService.getConnections(_currentUserId);
-      setState(() {
-        _connectedUserIds = connections.map((c) => c.otherUserId.toString()).toSet();
-        _blockedUserIds = connections.where((c) => c.isBlocked).map((c) => c.otherUserId.toString()).toSet();
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: SelectableText('Error fetching connections: $e')),
-        );
-      }
-    }
-  }
-
-  /// ✅ Fetch profiles with pagination
+  /// ✅ Fetch profiles from `community` view
   Future<void> _fetchProfiles({bool isLoadMore = false}) async {
     if (isLoadMore && !_hasMore) return; // Stop if no more profiles
 
@@ -2003,11 +2031,11 @@ class _CommunityPageState extends State<CommunityPage> {
 
     setState(() => _isLoading = true);
     try {
-      final profiles = await _profileService.getAllProfiles(
+      final profiles = await _communityService.getCommunityProfiles(
+        currentUserId: _currentUserId,
         searchQuery: _searchController.text,
         limit: _limit,
         offset: _offset,
-        currentUserId: _currentUserId,
       );
 
       setState(() {
@@ -2032,13 +2060,38 @@ class _CommunityPageState extends State<CommunityPage> {
   }
 
   /// ✅ Send connection request
+  // Future<void> _sendConnectionRequest(String targetUserId) async {
+  //   try {
+  //     await _connectionService.addConnection(_currentUserId, targetUserId);
+  //
+  //     setState(() {
+  //       _connectedUserIds.add(targetUserId); // ✅ Update UI
+  //     });
+  //
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(content: Text('Connection Added!')),
+  //       );
+  //     }
+  //   } catch (e) {
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(content: Text('Error sending request: $e')),
+  //       );
+  //     }
+  //   }
+  // }
+
   Future<void> _sendConnectionRequest(String targetUserId) async {
     try {
       await _connectionService.addConnection(_currentUserId, targetUserId);
 
       setState(() {
-        _connectedUserIds.add(targetUserId); // ✅ Update UI
+        _connectedUserIds.add(targetUserId); // ✅ Update UI immediately
       });
+
+      // ✅ Re-fetch profiles to reflect connection change
+      _fetchProfiles(isLoadMore: false);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2115,10 +2168,11 @@ class _CommunityPageState extends State<CommunityPage> {
                               itemBuilder: (context, index) {
                                 final profile = _profiles[index];
 
-                                if (profile.id.toString() == _currentUserId) return const SizedBox.shrink();
+                                if (profile.userId.toString() == _currentUserId) return const SizedBox.shrink();
 
-                                final bool isConnected = _connectedUserIds.contains(profile.id.toString());
-                                final bool isBlocked = _blockedUserIds.contains(profile.id.toString());
+                                final bool isConnected = profile.isConnected;
+                                final bool isBlocked = profile.isBlocked;
+                                final bool isBlockedBy = profile.isBlockedBy;
 
                                 return ListTile(
                                   leading: profile.avatarUrl != null ? CircleAvatar(backgroundImage: NetworkImage(profile.avatarUrl!)) : const CircleAvatar(child: Icon(Icons.person)),
@@ -2126,12 +2180,14 @@ class _CommunityPageState extends State<CommunityPage> {
                                   subtitle: Text(profile.email ?? 'No Email'),
                                   trailing: isBlocked
                                       ? const Text('Blocked', style: TextStyle(color: Colors.red))
-                                      : isConnected
-                                          ? const Text('Connected', style: TextStyle(color: Colors.green))
-                                          : ElevatedButton(
-                                              onPressed: () => _sendConnectionRequest(profile.id.toString()),
-                                              child: const Text('Connect'),
-                                            ),
+                                      : isBlockedBy
+                                          ? const Text('Blocked By User', style: TextStyle(color: Colors.red))
+                                          : isConnected
+                                              ? const Text('Connected', style: TextStyle(color: Colors.green))
+                                              : ElevatedButton(
+                                                  onPressed: () => _sendConnectionRequest(profile.userId.toString()),
+                                                  child: const Text('Connect'),
+                                                ),
                                 );
                               },
                             ),
@@ -2173,8 +2229,8 @@ class _CommunityPageState extends State<CommunityPage> {
 //   late String _currentUserId;
 //   late String _currentUserEmail;
 //   List<Profile> _profiles = [];
-//   // Set<String> _connectedUserEmails = {}; // Store emails of connected users
-//   Set<String> _connectedUserId = {}; // Store emails of connected users
+//   Set<String> _connectedUserIds = {};
+//   Set<String> _blockedUserIds = {}; // ✅ Store blocked users
 //   bool _isLoading = true;
 //   final TextEditingController _searchController = TextEditingController();
 //
@@ -2191,8 +2247,8 @@ class _CommunityPageState extends State<CommunityPage> {
 //     _currentUserId = authService.currentUser!.id;
 //     _currentUserEmail = authService.currentUser!.email ?? 'No Email';
 //
-//     _fetchConnections(); // ✅ Load connected users first
-//     _fetchProfiles(); // ✅ Load community profiles
+//     _fetchConnections();
+//     _fetchProfiles();
 //   }
 //
 //   @override
@@ -2201,13 +2257,13 @@ class _CommunityPageState extends State<CommunityPage> {
 //     super.dispose();
 //   }
 //
+//   /// ✅ Fetch connections and blocked users
 //   Future<void> _fetchConnections() async {
 //     try {
-//       final connectionsProfile = await _connectionService.getConnections(_currentUserId);
+//       final connections = await _connectionService.getConnections(_currentUserId);
 //       setState(() {
-//         _connectedUserId = connectionsProfile
-//             .map((c) => c.otherUserId.toString()) // Ensure non-null
-//             .toSet();
+//         _connectedUserIds = connections.map((c) => c.otherUserId.toString()).toSet();
+//         _blockedUserIds = connections.where((c) => c.isBlocked).map((c) => c.otherUserId.toString()).toSet();
 //       });
 //     } catch (e) {
 //       if (mounted) {
@@ -2226,17 +2282,22 @@ class _CommunityPageState extends State<CommunityPage> {
 //
 //     setState(() => _isLoading = true);
 //     try {
-//       final profiles = await _profileService.getAllProfiles(searchQuery: _searchController.text, limit: _limit, offset: _offset, currentUserId: _currentUserId);
+//       final profiles = await _profileService.getAllProfiles(
+//         searchQuery: _searchController.text,
+//         limit: _limit,
+//         offset: _offset,
+//         currentUserId: _currentUserId,
+//       );
 //
 //       setState(() {
 //         if (isLoadMore) {
-//           _profiles.addAll(profiles); // ✅ Append new profiles
+//           _profiles.addAll(profiles);
 //         } else {
-//           _profiles = profiles; // ✅ Initial search result
+//           _profiles = profiles;
 //         }
 //
-//         _offset += _limit; // ✅ Move offset forward
-//         _hasMore = profiles.length == _limit; // ✅ Check if more profiles exist
+//         _offset += _limit;
+//         _hasMore = profiles.length == _limit;
 //       });
 //     } catch (e) {
 //       if (mounted) {
@@ -2255,8 +2316,7 @@ class _CommunityPageState extends State<CommunityPage> {
 //       await _connectionService.addConnection(_currentUserId, targetUserId);
 //
 //       setState(() {
-//         // _connectedUserEmails.add(targetUserId); // ✅ Update UI
-//         _connectedUserId.add(targetUserId);
+//         _connectedUserIds.add(targetUserId); // ✅ Update UI
 //       });
 //
 //       if (mounted) {
@@ -2284,7 +2344,11 @@ class _CommunityPageState extends State<CommunityPage> {
 //             width: double.infinity,
 //             padding: const EdgeInsets.all(12),
 //             color: Colors.blue[100],
-//             child: Text('Your Email: $_currentUserEmail', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+//             child: Text(
+//               'Your Email: $_currentUserEmail $_currentUserId',
+//               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+//               textAlign: TextAlign.center,
+//             ),
 //           ),
 //
 //           // ✅ Search Bar
@@ -2292,7 +2356,11 @@ class _CommunityPageState extends State<CommunityPage> {
 //             padding: const EdgeInsets.all(8.0),
 //             child: TextField(
 //               controller: _searchController,
-//               decoration: const InputDecoration(hintText: 'Search by email', prefixIcon: Icon(Icons.search), border: OutlineInputBorder()),
+//               decoration: const InputDecoration(
+//                 hintText: 'Search by email',
+//                 prefixIcon: Icon(Icons.search),
+//                 border: OutlineInputBorder(),
+//               ),
 //               onChanged: (_) => _fetchProfiles(isLoadMore: false),
 //             ),
 //           ),
@@ -2326,22 +2394,23 @@ class _CommunityPageState extends State<CommunityPage> {
 //                               itemBuilder: (context, index) {
 //                                 final profile = _profiles[index];
 //
-//                                 if (profile.id.toString() == _currentUserId) return const SizedBox.shrink(); // ✅ Hide current user
-//                                 // if (profile.email == _currentUserEmail) return const SizedBox.shrink(); // ✅ Hide current user
+//                                 if (profile.id.toString() == _currentUserId) return const SizedBox.shrink();
 //
-//                                 // final bool isConnected = _connectedUserEmails.contains(profile.email);
-//                                 final bool isConnected = _connectedUserId.contains(profile.id.toString());
+//                                 final bool isConnected = _connectedUserIds.contains(profile.id.toString());
+//                                 final bool isBlocked = _blockedUserIds.contains(profile.id.toString());
 //
 //                                 return ListTile(
 //                                   leading: profile.avatarUrl != null ? CircleAvatar(backgroundImage: NetworkImage(profile.avatarUrl!)) : const CircleAvatar(child: Icon(Icons.person)),
-//                                   title: Text(profile.displayId ?? 'Unknown User'),
+//                                   title: Text(profile.id.uuid ?? 'Unknown User'),
 //                                   subtitle: Text(profile.email ?? 'No Email'),
-//                                   trailing: isConnected
-//                                       ? const Text('Connected', style: TextStyle(color: Colors.green))
-//                                       : ElevatedButton(
-//                                           onPressed: () => _sendConnectionRequest(profile.id.toString()),
-//                                           child: const Text('Connect'),
-//                                         ),
+//                                   trailing: isBlocked
+//                                       ? const Text('Blocked', style: TextStyle(color: Colors.red))
+//                                       : isConnected
+//                                           ? const Text('Connected', style: TextStyle(color: Colors.green))
+//                                           : ElevatedButton(
+//                                               onPressed: () => _sendConnectionRequest(profile.id.toString()),
+//                                               child: const Text('Connect'),
+//                                             ),
 //                                 );
 //                               },
 //                             ),
@@ -2364,178 +2433,7 @@ class _CommunityPageState extends State<CommunityPage> {
 // }
     </document_content>
   </document>
-  <document index="20">
-    <source>connections_page.dart</source>
-    <document_content>
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:sollylabs_discover/auth/auth_service.dart';
-import 'package:sollylabs_discover/database/models/connection_profile.dart';
-import 'package:sollylabs_discover/database/services/connection_service.dart';
-
-class ConnectionsPage extends StatefulWidget {
-  const ConnectionsPage({super.key});
-
-  @override
-  State<ConnectionsPage> createState() => _ConnectionsPageState();
-}
-
-class _ConnectionsPageState extends State<ConnectionsPage> with SingleTickerProviderStateMixin {
-  late ConnectionService _connectionService;
-  List<ConnectionProfile> _connections = [];
-  List<ConnectionProfile> _blockedConnections = [];
-  bool _isLoading = true;
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _connectionService = Provider.of<ConnectionService>(context, listen: false);
-    _tabController = TabController(length: 2, vsync: this);
-    _fetchConnections();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _fetchConnections() async {
-    setState(() => _isLoading = true);
-    try {
-      final userId = Provider.of<AuthService>(context, listen: false).currentUser!.id;
-      final connections = await _connectionService.getConnections(userId);
-
-      setState(() {
-        _connections = connections.where((c) => !c.isBlocked).toList();
-        _blockedConnections = connections.where((c) => c.isBlocked).toList();
-      });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error fetching connections: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _blockConnection(String connectionId) async {
-    try {
-      await _connectionService.blockConnection(connectionId);
-      setState(() {
-        _connections.removeWhere((c) => c.connectionId.toString() == connectionId);
-      });
-      _fetchConnections();
-    } catch (e) {
-      _showErrorSnackBar('Error blocking user: $e');
-    }
-  }
-
-  Future<void> _unblockConnection(String connectionId) async {
-    try {
-      await _connectionService.unblockConnection(connectionId);
-      setState(() {
-        _blockedConnections.removeWhere((c) => c.connectionId.toString() == connectionId);
-      });
-      _fetchConnections();
-    } catch (e) {
-      _showErrorSnackBar('Error unblocking user: $e');
-    }
-  }
-
-  Future<void> _confirmRemoveConnection(String connectionId) async {
-    try {
-      await _connectionService.removeConnection(connectionId);
-      setState(() {
-        _connections.removeWhere((c) => c.connectionId.toString() == connectionId);
-        _blockedConnections.removeWhere((c) => c.connectionId.toString() == connectionId);
-      });
-
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connection removed successfully')));
-    } catch (e) {
-      _showErrorSnackBar('Error removing connection: $e');
-    }
-  }
-
-  void _showErrorSnackBar(String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-    }
-  }
-
-  Widget _buildConnectionList(List<ConnectionProfile> connections, bool isBlockedList) {
-    if (connections.isEmpty) {
-      return const Center(child: Text('No connections found.'));
-    }
-
-    return ListView.builder(
-      itemCount: connections.length,
-      itemBuilder: (context, index) {
-        final connection = connections[index];
-        return ListTile(
-          title: Text(connection.otherUserEmail),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (connection.otherUserDisplayId.isNotEmpty == true) Text('Display ID: ${connection.otherUserDisplayId}'),
-              if (connection.otherUserFullName.isNotEmpty == true) Text('Full Name: ${connection.otherUserFullName}'),
-              if (connection.otherUserWebsite.isNotEmpty == true) Text('Website: ${connection.otherUserWebsite}'),
-            ],
-          ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (isBlockedList)
-                IconButton(
-                  icon: const Icon(Icons.lock_open, color: Colors.green),
-                  onPressed: () => _unblockConnection(connection.connectionId.toString()),
-                )
-              else ...[
-                IconButton(
-                  icon: const Icon(Icons.block, color: Colors.red),
-                  onPressed: () => _blockConnection(connection.connectionId.toString()),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.remove_circle, color: Colors.grey),
-                  onPressed: () => _confirmRemoveConnection(connection.connectionId.toString()),
-                ),
-              ]
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Connections'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Active Connections'),
-            Tab(text: 'Blocked Users'),
-          ],
-        ),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildConnectionList(_connections, false), // Active connections
-                _buildConnectionList(_blockedConnections, true), // Blocked connections
-              ],
-            ),
-    );
-  }
-}
-    </document_content>
-  </document>
-  <document index="21">
+  <document index="19">
     <source>create_password_page.dart</source>
     <document_content>
 import 'package:flutter/material.dart';
@@ -2843,14 +2741,14 @@ class _CreatePasswordPageState extends State<CreatePasswordPage> {
 // }
     </document_content>
   </document>
-  <document index="22">
+  <document index="20">
     <source>dashboard_page.dart</source>
     <document_content>
 import 'package:flutter/material.dart';
 import 'package:sollylabs_discover/pages/account/account_page.dart';
-import 'package:sollylabs_discover/pages/connections_page.dart';
 
 import 'community_page.dart';
+import 'network_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -2866,18 +2764,6 @@ class DashboardPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ElevatedButton.icon(
-              icon: const Icon(Icons.people),
-              label: const Text('Connections'),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ConnectionsPage(),
-                  ),
-                );
-              },
-            ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               icon: const Icon(Icons.account_circle),
@@ -2902,74 +2788,26 @@ class DashboardPage extends StatelessWidget {
                 );
               },
             ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.link), // ✅ New icon for NetworkPage
+              label: const Text('Network'), // ✅ Button for NetworkPage
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const NetworkPage()),
+                );
+              },
+            ),
           ],
         ),
       ),
     );
   }
 }
-
-// import 'package:flutter/material.dart';
-// import 'package:sollylabs_discover/pages/account/account_page.dart';
-//
-// class DashboardPage extends StatelessWidget {
-//   const DashboardPage({super.key});
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text('Dashboard'),
-//       ),
-//       drawer: Drawer(
-//         child: ListView(
-//           padding: EdgeInsets.zero,
-//           children: [
-//             const DrawerHeader(
-//               decoration: BoxDecoration(
-//                 color: Colors.blue,
-//               ),
-//               child: Text(
-//                 'Dashboard Menu',
-//                 style: TextStyle(
-//                   color: Colors.white,
-//                   fontSize: 24,
-//                 ),
-//               ),
-//             ),
-//             ListTile(
-//               leading: const Icon(Icons.account_circle),
-//               title: const Text('Account'),
-//               onTap: () {
-//                 Navigator.pop(context); // Close the drawer
-//                 Navigator.push(
-//                   context,
-//                   MaterialPageRoute(
-//                     builder: (context) => const AccountPage(),
-//                   ),
-//                 );
-//               },
-//             ),
-//             ListTile(
-//               leading: const Icon(Icons.people),
-//               title: const Text('Connections'),
-//               onTap: () {
-//                 Navigator.pop(context); // Close the drawer
-//                 Navigator.pushNamed(context, '/connections'); // Navigate using route
-//               },
-//             ),
-//           ],
-//         ),
-//       ),
-//       body: const Center(
-//         child: Text('Welcome to the Dashboard!'),
-//       ),
-//     );
-//   }
-// }
     </document_content>
   </document>
-  <document index="23">
+  <document index="21">
     <source>login_page.dart</source>
     <document_content>
 import 'package:flutter/material.dart';
@@ -2992,7 +2830,228 @@ class LoginPage extends StatelessWidget {
 }
     </document_content>
   </document>
-  <document index="24">
+  <document index="22">
+    <source>network_page.dart</source>
+    <document_content>
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sollylabs_discover/auth/auth_service.dart';
+import 'package:sollylabs_discover/database/models/network_model.dart';
+import 'package:sollylabs_discover/database/services/network_service.dart';
+
+class NetworkPage extends StatefulWidget {
+  const NetworkPage({super.key});
+
+  @override
+  State<NetworkPage> createState() => _NetworkPageState();
+}
+
+class _NetworkPageState extends State<NetworkPage> {
+  late NetworkService _networkService;
+  late String _currentUserId;
+  List<NetworkModel> _networkConnections = [];
+  List<NetworkModel> _blockedConnections = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    final authService = Provider.of<AuthService>(context, listen: false);
+    _networkService = Provider.of<NetworkService>(context, listen: false);
+    _currentUserId = authService.currentUser!.id;
+    _fetchNetwork();
+  }
+
+  Future<void> _fetchNetwork() async {
+    setState(() => _isLoading = true);
+    try {
+      final connections = await _networkService.getNetwork(currentUserId: _currentUserId);
+      setState(() {
+        _networkConnections = connections.where((c) => !c.isBlocked).toList();
+        _blockedConnections = connections.where((c) => c.isBlocked).toList();
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching network: $e')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _removeUser(String otherUserId) async {
+    try {
+      await _networkService.removeUser(_currentUserId, otherUserId);
+      _fetchNetwork(); // ✅ Refresh UI after removing a user
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User removed successfully!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error removing user: $e')),
+      );
+    }
+  }
+
+  Future<void> _blockUser(String otherUserId) async {
+    try {
+      await _networkService.blockUser(_currentUserId, otherUserId);
+      _fetchNetwork(); // ✅ Refresh UI after blocking
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User blocked successfully!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error blocking user: $e')),
+      );
+    }
+  }
+
+  Future<void> _unblockUser(String otherUserId) async {
+    try {
+      await _networkService.unblockUser(_currentUserId, otherUserId);
+      _fetchNetwork(); // ✅ Refresh UI after unblocking
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User unblocked successfully!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error unblocking user: $e')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Network')),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _networkConnections.length,
+                    itemBuilder: (context, index) {
+                      final connection = _networkConnections[index];
+                      return ListTile(
+                        leading: const CircleAvatar(child: Icon(Icons.person)),
+                        title: Text(connection.otherUserDisplayId),
+                        subtitle: Text(connection.otherUserEmail),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.person_remove, color: Colors.grey),
+                              onPressed: () => _removeUser(connection.otherUserId.toString()),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.block, color: Colors.red),
+                              onPressed: () => _blockUser(connection.otherUserId.toString()),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                if (_blockedConnections.isNotEmpty) const Divider(thickness: 1),
+                if (_blockedConnections.isNotEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Text('Blocked Users', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
+                if (_blockedConnections.isNotEmpty)
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _blockedConnections.length,
+                      itemBuilder: (context, index) {
+                        final blockedUser = _blockedConnections[index];
+                        return ListTile(
+                          leading: const CircleAvatar(child: Icon(Icons.person_off)),
+                          title: Text(blockedUser.otherUserDisplayId),
+                          subtitle: Text(blockedUser.otherUserEmail),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.lock_open, color: Colors.green),
+                            onPressed: () => _unblockUser(blockedUser.otherUserId.toString()),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+    );
+  }
+}
+
+// import 'package:flutter/material.dart';
+// import 'package:provider/provider.dart';
+// import 'package:sollylabs_discover/auth/auth_service.dart';
+// import 'package:sollylabs_discover/database/models/network_model.dart';
+// import 'package:sollylabs_discover/database/services/network_service.dart';
+//
+// class NetworkPage extends StatefulWidget {
+//   const NetworkPage({super.key});
+//
+//   @override
+//   State<NetworkPage> createState() => _NetworkPageState();
+// }
+//
+// class _NetworkPageState extends State<NetworkPage> {
+//   late NetworkService _networkService;
+//   late String _currentUserId;
+//   List<NetworkModel> _networkConnections = [];
+//   bool _isLoading = true;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     final authService = Provider.of<AuthService>(context, listen: false);
+//     _networkService = Provider.of<NetworkService>(context, listen: false);
+//     _currentUserId = authService.currentUser!.id;
+//     _fetchNetwork();
+//   }
+//
+//   Future<void> _fetchNetwork() async {
+//     setState(() => _isLoading = true);
+//     try {
+//       final connections = await _networkService.getNetwork(currentUserId: _currentUserId);
+//       setState(() => _networkConnections = connections);
+//     } catch (e) {
+//       ScaffoldMessenger.of(context).showSnackBar(
+//         SnackBar(content: Text('Error fetching network: $e')),
+//       );
+//     } finally {
+//       setState(() => _isLoading = false);
+//     }
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(title: const Text('Network')),
+//       body: _isLoading
+//           ? const Center(child: CircularProgressIndicator())
+//           : _networkConnections.isEmpty
+//               ? const Center(child: Text('No connections found.'))
+//               : ListView.builder(
+//                   itemCount: _networkConnections.length,
+//                   itemBuilder: (context, index) {
+//                     final connection = _networkConnections[index];
+//                     return ListTile(
+//                       leading: const CircleAvatar(child: Icon(Icons.person)),
+//                       title: Text(connection.otherUserDisplayId),
+//                       subtitle: Text(connection.otherUserEmail),
+//                     );
+//                   },
+//                 ),
+//     );
+//   }
+// }
+    </document_content>
+  </document>
+  <document index="23">
     <source>otp_page.dart</source>
     <document_content>
 import 'package:flutter/material.dart';
@@ -3542,7 +3601,7 @@ class OtpPageState extends State<OtpPage> {
 // // // // }
     </document_content>
   </document>
-  <document index="25">
+  <document index="24">
     <source>reset_password_page.dart</source>
     <document_content>
 import 'package:flutter/material.dart';
@@ -3828,7 +3887,7 @@ class ResetPasswordPageState extends State<ResetPasswordPage> {
 // // }
     </document_content>
   </document>
-  <document index="26">
+  <document index="25">
     <source>update_password_after_reset_page.dart</source>
     <document_content>
 import 'package:flutter/material.dart';
@@ -3980,7 +4039,7 @@ class _UpdatePasswordAfterResetPageState extends State<UpdatePasswordAfterResetP
 }
     </document_content>
   </document>
-  <document index="27">
+  <document index="26">
     <source>update_password_page.dart</source>
     <document_content>
 import 'package:flutter/material.dart';
@@ -4364,7 +4423,7 @@ class UpdatePasswordPageState extends State<UpdatePasswordPage> {
 // }
     </document_content>
   </document>
-  <document index="28">
+  <document index="27">
     <source>account_page.dart</source>
     <document_content>
 import 'dart:io';
@@ -4694,7 +4753,7 @@ class _AccountPageState extends State<AccountPage> {
 }
     </document_content>
   </document>
-  <document index="29">
+  <document index="28">
     <source>sign_in_form.dart</source>
     <document_content>
 import 'package:flutter/material.dart';

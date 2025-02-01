@@ -176,24 +176,6 @@ SET default_tablespace = '';
 SET default_table_access_method = "heap";
 
 
-CREATE TABLE IF NOT EXISTS "backup_data"."project_list_backup" (
-    "id" "uuid" NOT NULL,
-    "project_name" "text" NOT NULL,
-    "project_info" "text",
-    "shortcode_link" "text",
-    "project_sequence_number" integer,
-    "created_by" "uuid",
-    "created_at" timestamp with time zone NOT NULL,
-    "updated_by" "uuid",
-    "updated_at" timestamp with time zone,
-    "backup_created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "backup_id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL
-);
-
-
-ALTER TABLE "backup_data"."project_list_backup" OWNER TO "postgres";
-
-
 CREATE TABLE IF NOT EXISTS "public"."blocked_users" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "blocker_id" "uuid" NOT NULL,
@@ -235,7 +217,7 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
 ALTER TABLE "public"."profiles" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."community" WITH ("security_invoker"='true') AS
+CREATE OR REPLACE VIEW "public"."community" AS
  SELECT "p"."id" AS "user_id",
     "p"."email",
     "p"."display_id",
@@ -272,21 +254,30 @@ CREATE OR REPLACE VIEW "public"."connection_profiles" AS
             ELSE "c"."user2_id"
         END AS "user_id",
         CASE
-            WHEN ("c"."user1_id" = "auth"."uid"()) THEN "p1"."email"
-            ELSE "p2"."email"
-        END AS "user_email",
+            WHEN ("c"."user1_id" = "auth"."uid"()) THEN "p2"."avatar_url"
+            ELSE "p1"."avatar_url"
+        END AS "other_user_avatar_url",
         CASE
-            WHEN ("c"."user1_id" = "auth"."uid"()) THEN "p1"."display_id"
-            ELSE "p2"."display_id"
-        END AS "user_display_id",
+            WHEN ("c"."user1_id" = "auth"."uid"()) THEN "c"."user2_id"
+            ELSE "c"."user1_id"
+        END AS "other_user_id",
         CASE
-            WHEN ("c"."user1_id" = "auth"."uid"()) THEN "p1"."full_name"
-            ELSE "p2"."full_name"
-        END AS "user_full_name",
-        CASE
-            WHEN ("c"."user1_id" = "auth"."uid"()) THEN "p1"."website"
-            ELSE "p2"."website"
-        END AS "user_website",
+            WHEN ("c"."user1_id" = "auth"."uid"()) THEN "p2"."email"
+            ELSE "p1"."email"
+        END AS "other_user_email"
+   FROM (("public"."connections" "c"
+     JOIN "public"."profiles" "p1" ON (("c"."user1_id" = "p1"."id")))
+     JOIN "public"."profiles" "p2" ON (("c"."user2_id" = "p2"."id")))
+  WHERE (("c"."user1_id" = "auth"."uid"()) OR ("c"."user2_id" = "auth"."uid"()));
+
+
+ALTER TABLE "public"."connection_profiles" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."network" AS
+ SELECT "c"."id" AS "connection_id",
+    "c"."created_at",
+    "auth"."uid"() AS "user_id",
         CASE
             WHEN ("c"."user1_id" = "auth"."uid"()) THEN "c"."user2_id"
             ELSE "c"."user1_id"
@@ -307,77 +298,22 @@ CREATE OR REPLACE VIEW "public"."connection_profiles" AS
             WHEN ("c"."user1_id" = "auth"."uid"()) THEN "p2"."website"
             ELSE "p1"."website"
         END AS "other_user_website",
-    "c"."is_blocked"
-   FROM (("public"."connections" "c"
+        CASE
+            WHEN ("bu"."blocker_id" IS NOT NULL) THEN true
+            ELSE false
+        END AS "is_blocked"
+   FROM ((("public"."connections" "c"
      JOIN "public"."profiles" "p1" ON (("c"."user1_id" = "p1"."id")))
-     JOIN "public"."profiles" "p2" ON (("c"."user2_id" = "p2"."id")));
+     JOIN "public"."profiles" "p2" ON (("c"."user2_id" = "p2"."id")))
+     LEFT JOIN "public"."blocked_users" "bu" ON ((("bu"."blocker_id" = "auth"."uid"()) AND ("bu"."blocked_id" =
+        CASE
+            WHEN ("c"."user1_id" = "auth"."uid"()) THEN "c"."user2_id"
+            ELSE "c"."user1_id"
+        END))))
+  WHERE (("c"."user1_id" = "auth"."uid"()) OR ("c"."user2_id" = "auth"."uid"()));
 
 
-ALTER TABLE "public"."connection_profiles" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."invitations" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "project_id" "uuid" NOT NULL,
-    "sender_id" "uuid" NOT NULL,
-    "recipient_email" "text" NOT NULL,
-    "role" "text" NOT NULL,
-    "status" "text" DEFAULT 'pending'::"text" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"(),
-    "updated_at" timestamp with time zone DEFAULT "now"()
-);
-
-
-ALTER TABLE "public"."invitations" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."messages" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "connection_id" "uuid" NOT NULL,
-    "sender_id" "uuid" NOT NULL,
-    "message" "text",
-    "created_at" timestamp with time zone DEFAULT "now"(),
-    "updated_at" timestamp with time zone DEFAULT "now"()
-);
-
-
-ALTER TABLE "public"."messages" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."project_list" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "project_name" "text" NOT NULL,
-    "project_info" "text",
-    "shortcode_link" "text",
-    "project_sequence_number" integer,
-    "created_by" "uuid" DEFAULT "auth"."uid"(),
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_by" "uuid" DEFAULT "auth"."uid"(),
-    "updated_at" timestamp with time zone DEFAULT "now"(),
-    "owner_id" "uuid" DEFAULT "auth"."uid"()
-);
-
-
-ALTER TABLE "public"."project_list" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."project_permissions" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "project_id" "uuid" NOT NULL,
-    "user_id" "uuid" NOT NULL,
-    "role" "text" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"(),
-    "updated_at" timestamp with time zone DEFAULT "now"(),
-    CONSTRAINT "project_permissions_role_check" CHECK (("role" = ANY (ARRAY['owner'::"text", 'admin'::"text", 'editor'::"text", 'viewer'::"text"])))
-);
-
-
-ALTER TABLE "public"."project_permissions" OWNER TO "postgres";
-
-
-ALTER TABLE ONLY "backup_data"."project_list_backup"
-    ADD CONSTRAINT "project_list_backup_pkey" PRIMARY KEY ("backup_id");
-
+ALTER TABLE "public"."network" OWNER TO "postgres";
 
 
 ALTER TABLE ONLY "public"."blocked_users"
@@ -387,16 +323,6 @@ ALTER TABLE ONLY "public"."blocked_users"
 
 ALTER TABLE ONLY "public"."connections"
     ADD CONSTRAINT "connections_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."invitations"
-    ADD CONSTRAINT "invitations_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."messages"
-    ADD CONSTRAINT "messages_pkey" PRIMARY KEY ("id");
 
 
 
@@ -412,16 +338,6 @@ ALTER TABLE ONLY "public"."profiles"
 
 ALTER TABLE ONLY "public"."profiles"
     ADD CONSTRAINT "profiles_username_key" UNIQUE ("username");
-
-
-
-ALTER TABLE ONLY "public"."project_list"
-    ADD CONSTRAINT "project_list_pkey" PRIMARY KEY ("id");
-
-
-
-ALTER TABLE ONLY "public"."project_permissions"
-    ADD CONSTRAINT "project_permissions_pkey" PRIMARY KEY ("id");
 
 
 
@@ -458,35 +374,11 @@ CREATE OR REPLACE TRIGGER "lowercase_profiles_fields" BEFORE INSERT OR UPDATE ON
 
 
 
-CREATE OR REPLACE TRIGGER "set_project_owner_trigger" AFTER INSERT ON "public"."project_list" FOR EACH ROW EXECUTE FUNCTION "public"."set_project_owner"();
-
-
-
-CREATE OR REPLACE TRIGGER "trigger_backup_project_list" AFTER INSERT OR UPDATE ON "public"."project_list" FOR EACH ROW EXECUTE FUNCTION "public"."backup_project_list_changes"();
-
-
-
 CREATE OR REPLACE TRIGGER "update_connections_updated_at" BEFORE UPDATE ON "public"."connections" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
 
 
 
-CREATE OR REPLACE TRIGGER "update_invitations_updated_at" BEFORE UPDATE ON "public"."invitations" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
-
-
-
-CREATE OR REPLACE TRIGGER "update_messages_updated_at" BEFORE UPDATE ON "public"."messages" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
-
-
-
 CREATE OR REPLACE TRIGGER "update_profiles_updated_at" BEFORE UPDATE ON "public"."profiles" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
-
-
-
-CREATE OR REPLACE TRIGGER "update_project_list_updated_at" BEFORE UPDATE ON "public"."project_list" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
-
-
-
-CREATE OR REPLACE TRIGGER "update_project_permissions_updated_at" BEFORE UPDATE ON "public"."project_permissions" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
 
 
 
@@ -510,107 +402,12 @@ ALTER TABLE ONLY "public"."connections"
 
 
 
-ALTER TABLE ONLY "public"."invitations"
-    ADD CONSTRAINT "invitations_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "public"."project_list"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."invitations"
-    ADD CONSTRAINT "invitations_sender_id_fkey" FOREIGN KEY ("sender_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."messages"
-    ADD CONSTRAINT "messages_connection_id_fkey" FOREIGN KEY ("connection_id") REFERENCES "public"."connections"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."messages"
-    ADD CONSTRAINT "messages_sender_id_fkey" FOREIGN KEY ("sender_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
-
-
-
 ALTER TABLE ONLY "public"."profiles"
     ADD CONSTRAINT "profiles_id_fkey" FOREIGN KEY ("id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
 
 
-ALTER TABLE ONLY "public"."project_list"
-    ADD CONSTRAINT "project_list_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
-
-
-
-ALTER TABLE ONLY "public"."project_list"
-    ADD CONSTRAINT "project_list_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
-
-
-
-ALTER TABLE ONLY "public"."project_list"
-    ADD CONSTRAINT "project_list_updated_by_fkey" FOREIGN KEY ("updated_by") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
-
-
-
-ALTER TABLE ONLY "public"."project_permissions"
-    ADD CONSTRAINT "project_permissions_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "public"."project_list"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."project_permissions"
-    ADD CONSTRAINT "project_permissions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."project_permissions"
-    ADD CONSTRAINT "project_permissions_user_id_profiles_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
-
-
-
-CREATE POLICY "Allow auth to insert and validate" ON "backup_data"."project_list_backup" FOR INSERT WITH CHECK (true);
-
-
-
-CREATE POLICY "Allow select for all" ON "backup_data"."project_list_backup" FOR SELECT USING (true);
-
-
-
-ALTER TABLE "backup_data"."project_list_backup" ENABLE ROW LEVEL SECURITY;
-
-
 CREATE POLICY "Allow all authenticated users to select all profiles" ON "public"."profiles" FOR SELECT TO "authenticated" USING (true);
-
-
-
-CREATE POLICY "Allow owners and admins to create roles" ON "public"."project_permissions" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
-   FROM "public"."project_permissions" "pp"
-  WHERE (("pp"."project_id" = "project_permissions"."project_id") AND ("pp"."user_id" = "auth"."uid"()) AND ("pp"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"]))))));
-
-
-
-CREATE POLICY "Allow owners and admins to delete roles" ON "public"."project_permissions" FOR DELETE USING (((EXISTS ( SELECT 1
-   FROM "public"."project_permissions" "pp"
-  WHERE (("pp"."project_id" = "project_permissions"."project_id") AND ("pp"."user_id" = "auth"."uid"()) AND ("pp"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"]))))) AND (NOT (("role" = 'owner'::"text") AND (( SELECT "count"(*) AS "count"
-   FROM "public"."project_permissions" "project_permissions_1"
-  WHERE (("project_permissions_1"."project_id" = "project_permissions_1"."project_id") AND ("project_permissions_1"."role" = 'owner'::"text"))) = 1)))));
-
-
-
-CREATE POLICY "Allow owners and admins to update roles" ON "public"."project_permissions" FOR UPDATE USING ((EXISTS ( SELECT 1
-   FROM "public"."project_permissions" "pp"
-  WHERE (("pp"."project_id" = "project_permissions"."project_id") AND ("pp"."user_id" = "auth"."uid"()) AND ("pp"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"]))))));
-
-
-
-CREATE POLICY "Allow project creator to add initial permission" ON "public"."project_permissions" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
-   FROM "public"."project_list"
-  WHERE (("project_list"."id" = "project_permissions"."project_id") AND ("project_list"."created_by" = "auth"."uid"())))));
-
-
-
-CREATE POLICY "Allow project owners and admins to create invitations" ON "public"."invitations" FOR INSERT TO "authenticated" WITH CHECK ((EXISTS ( SELECT 1
-   FROM "public"."project_permissions"
-  WHERE (("project_permissions"."project_id" IN ( SELECT "project_list"."id"
-           FROM "public"."project_list"
-          WHERE ("project_list"."owner_id" = "auth"."uid"()))) AND ("project_permissions"."user_id" = "auth"."uid"()) AND ("project_permissions"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"]))))));
 
 
 
@@ -626,38 +423,6 @@ CREATE POLICY "Allow users to view their blocked relationships" ON "public"."blo
 
 
 
-CREATE POLICY "Allow users to view their own invitations" ON "public"."invitations" FOR SELECT TO "authenticated" USING (("auth"."email"() = "recipient_email"));
-
-
-
-CREATE POLICY "Allow users to view their permissions" ON "public"."project_permissions" FOR SELECT USING (("auth"."uid"() = "user_id"));
-
-
-
-CREATE POLICY "Owner Full Access" ON "public"."project_list" USING (("auth"."uid"() = "owner_id")) WITH CHECK (("auth"."uid"() = "owner_id"));
-
-
-
-CREATE POLICY "Prevent users from deleting invitations directly" ON "public"."invitations" FOR DELETE TO "authenticated" USING (false);
-
-
-
-CREATE POLICY "Prevent users from updating invitations directly" ON "public"."invitations" FOR UPDATE TO "authenticated" USING (false);
-
-
-
-CREATE POLICY "Project owners can manage their own projects." ON "public"."project_list" TO "authenticated" USING (("auth"."uid"() = "created_by"));
-
-
-
-CREATE POLICY "Role-Based Access" ON "public"."project_list" USING ((EXISTS ( SELECT 1
-   FROM "public"."project_permissions"
-  WHERE (("project_permissions"."project_id" = "project_list"."id") AND ("project_permissions"."user_id" = "auth"."uid"()) AND ("project_permissions"."role" = ANY (ARRAY['admin'::"text", 'editor'::"text", 'viewer'::"text"])))))) WITH CHECK ((EXISTS ( SELECT 1
-   FROM "public"."project_permissions"
-  WHERE (("project_permissions"."project_id" = "project_list"."id") AND ("project_permissions"."user_id" = "auth"."uid"()) AND ("project_permissions"."role" = ANY (ARRAY['admin'::"text", 'editor'::"text"]))))));
-
-
-
 CREATE POLICY "Users can insert their own profile." ON "public"."profiles" FOR INSERT WITH CHECK ((( SELECT "auth"."uid"() AS "uid") = "id"));
 
 
@@ -669,12 +434,6 @@ CREATE POLICY "Users can update own profile." ON "public"."profiles" FOR UPDATE 
 ALTER TABLE "public"."blocked_users" ENABLE ROW LEVEL SECURITY;
 
 
-ALTER TABLE "public"."project_list" ENABLE ROW LEVEL SECURITY;
-
-
-ALTER TABLE "public"."project_permissions" ENABLE ROW LEVEL SECURITY;
-
-
 
 
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
@@ -684,10 +443,6 @@ CREATE PUBLICATION "supabase_realtime_messages_publication" WITH (publish = 'ins
 
 
 ALTER PUBLICATION "supabase_realtime_messages_publication" OWNER TO "supabase_admin";
-
-
-ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."project_list";
-
 
 
 GRANT ALL ON SCHEMA "backup_data" TO "authenticator";
@@ -911,13 +666,6 @@ GRANT ALL ON FUNCTION "public"."update_updated_at_column"() TO "service_role";
 
 
 
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "backup_data"."project_list_backup" TO "authenticator";
-GRANT ALL ON TABLE "backup_data"."project_list_backup" TO "anon";
-GRANT ALL ON TABLE "backup_data"."project_list_backup" TO "authenticated";
-GRANT ALL ON TABLE "backup_data"."project_list_backup" TO "service_role";
-
-
-
 
 
 
@@ -963,27 +711,9 @@ GRANT ALL ON TABLE "public"."connection_profiles" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."invitations" TO "anon";
-GRANT ALL ON TABLE "public"."invitations" TO "authenticated";
-GRANT ALL ON TABLE "public"."invitations" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."messages" TO "anon";
-GRANT ALL ON TABLE "public"."messages" TO "authenticated";
-GRANT ALL ON TABLE "public"."messages" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."project_list" TO "anon";
-GRANT ALL ON TABLE "public"."project_list" TO "authenticated";
-GRANT ALL ON TABLE "public"."project_list" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."project_permissions" TO "anon";
-GRANT ALL ON TABLE "public"."project_permissions" TO "authenticated";
-GRANT ALL ON TABLE "public"."project_permissions" TO "service_role";
+GRANT ALL ON TABLE "public"."network" TO "anon";
+GRANT ALL ON TABLE "public"."network" TO "authenticated";
+GRANT ALL ON TABLE "public"."network" TO "service_role";
 
 
 

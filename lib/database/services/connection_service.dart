@@ -15,24 +15,6 @@ class ConnectionService {
     return response.map<ConnectionProfile>((data) => ConnectionProfile.fromJson(data)).toList();
   }
 
-  // Future<void> blockUser(String blockerId, String blockedId) async {
-  //   final existingBlock = await globals.supabaseClient.from('blocked_users').select().eq('blocker_id', blockerId).eq('blocked_id', blockedId).maybeSingle();
-  //
-  //   if (existingBlock != null) {
-  //     throw Exception('User is already blocked.');
-  //   }
-  //
-  //   final response = await globals.supabaseClient.from('blocked_users').insert({
-  //     'blocker_id': blockerId,
-  //     'blocked_id': blockedId,
-  //     'created_at': DateTime.now().toIso8601String(),
-  //   });
-  //
-  //   if (response.error != null) {
-  //     throw Exception('Failed to block user: ${response.error!.message}');
-  //   }
-  // }
-
   Future<void> blockUser(String blockerId, String blockedId) async {
     debugPrint('🔹 Checking if user $blockedId is already blocked by $blockerId');
 
@@ -81,27 +63,6 @@ class ConnectionService {
     }
   }
 
-  // Future<void> blockConnection(String connectionId) async {
-  //   final response = await globals.supabaseClient.from('connections').update({'blocked': true}).eq('id', connectionId).select();
-  //
-  //   if (response.isEmpty) {
-  //     throw Exception('Failed to block user');
-  //   }
-  // }
-  //
-  // Future<void> unblockConnection(String connectionId) async {
-  //   final response = await globals.supabaseClient.from('connections').update({'blocked': false}).eq('id', connectionId).select();
-  //
-  //   if (response.isEmpty) {
-  //     throw Exception('Failed to unblock user');
-  //   }
-  // }
-
-  // Future<bool> removeConnection(String connectionId) async {
-  //   final response = await globals.supabaseClient.from('connections').delete().eq('id', connectionId).select();
-  //
-  //   return response.isNotEmpty; // Returns `true` if deletion was successful
-  // }
   Future<void> removeConnection(String userId, String otherUserId) async {
     debugPrint('🔹 Checking if connection exists between $userId and $otherUserId');
 

@@ -44,6 +44,20 @@ class _NetworkPageState extends State<NetworkPage> {
     }
   }
 
+  Future<void> _removeUser(String otherUserId) async {
+    try {
+      await _networkService.removeUser(_currentUserId, otherUserId);
+      _fetchNetwork(); // ✅ Refresh UI after removing a user
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('User removed successfully!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error removing user: $e')),
+      );
+    }
+  }
+
   Future<void> _blockUser(String otherUserId) async {
     try {
       await _networkService.blockUser(_currentUserId, otherUserId);
@@ -89,9 +103,18 @@ class _NetworkPageState extends State<NetworkPage> {
                         leading: const CircleAvatar(child: Icon(Icons.person)),
                         title: Text(connection.otherUserDisplayId),
                         subtitle: Text(connection.otherUserEmail),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.block, color: Colors.red),
-                          onPressed: () => _blockUser(connection.otherUserId.toString()),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.person_remove, color: Colors.grey),
+                              onPressed: () => _removeUser(connection.otherUserId.toString()),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.block, color: Colors.red),
+                              onPressed: () => _blockUser(connection.otherUserId.toString()),
+                            ),
+                          ],
                         ),
                       );
                     },
