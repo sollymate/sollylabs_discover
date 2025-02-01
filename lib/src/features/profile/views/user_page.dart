@@ -17,6 +17,8 @@ class UserPage extends StatefulWidget {
 }
 
 class _UserPageState extends State<UserPage> {
+  bool _isLoadingProfile = true; // New state to track loading status
+
   bool _isSigningOut = false;
   UserProfile? _userProfile;
   final _formKey = GlobalKey<FormState>();
@@ -45,6 +47,9 @@ class _UserPageState extends State<UserPage> {
   Future<void> _loadUserProfile() async {
     final database = Provider.of<AppServices>(context, listen: false);
     try {
+      setState(() {
+        _isLoadingProfile = true; // Start loading
+      });
       final profile = await database.userService.getProfile();
       if (profile != null && mounted) {
         setState(() {
@@ -58,6 +63,12 @@ class _UserPageState extends State<UserPage> {
     } catch (e) {
       debugPrint('Error loading user profile: $e');
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error loading profile: $e'), backgroundColor: Colors.red));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingProfile = false; // Stop loading
+        });
+      }
     }
   }
 
@@ -168,168 +179,171 @@ class _UserPageState extends State<UserPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Account'),
+        title: const Text('Profile'),
+        centerTitle: true,
       ),
       body: Center(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (_userProfile != null) ...[
-                    Column(
+        child: _isLoadingProfile
+            ? const CircularProgressIndicator() // Show loader while fetching profile
+            : SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        GestureDetector(
-                          onTap: _pickImage,
-                          child: CircleAvatar(
-                            radius: 50,
-                            backgroundImage: _avatarImage != null ? FileImage(_avatarImage!) : (_userProfile!.avatarUrl != null ? NetworkImage(_userProfile!.avatarUrl!) : null) as ImageProvider<Object>?,
-                            child: _avatarImage == null && _userProfile!.avatarUrl == null ? const Icon(Icons.camera_alt, size: 50) : null,
+                        if (_userProfile != null) ...[
+                          Column(
+                            children: [
+                              GestureDetector(
+                                onTap: _pickImage,
+                                child: CircleAvatar(
+                                  radius: 50,
+                                  backgroundImage: _avatarImage != null ? FileImage(_avatarImage!) : (_userProfile!.avatarUrl != null ? NetworkImage(_userProfile!.avatarUrl!) : null) as ImageProvider<Object>?,
+                                  child: _avatarImage == null && _userProfile!.avatarUrl == null ? const Icon(Icons.camera_alt, size: 50) : null,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              if (_userProfile!.avatarUrl != null || _avatarImage != null)
+                                ElevatedButton(
+                                  onPressed: _removeAvatar,
+                                  child: const Text('Remove Avatar'),
+                                ),
+                            ],
                           ),
+                          const SizedBox(height: 20),
+                          TextFormField(
+                            controller: _fullNameController,
+                            decoration: const InputDecoration(labelText: 'Full Name'),
+                          ),
+                          TextFormField(
+                            controller: _usernameController,
+                            decoration: const InputDecoration(labelText: 'Username'),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter a username';
+                              }
+                              if (value.length < 3) {
+                                return 'Username must be at least 3 characters long';
+                              }
+                              return null;
+                            },
+                          ),
+                          TextFormField(
+                            controller: _websiteController,
+                            decoration: const InputDecoration(labelText: 'Website'),
+                          ),
+                          TextFormField(
+                            controller: _displayIdController,
+                            decoration: const InputDecoration(labelText: 'Display ID'),
+                          ),
+                          const SizedBox(height: 20),
+                          _isLoading
+                              ? const CircularProgressIndicator()
+                              : ElevatedButton(
+                                  onPressed: _updateProfile,
+                                  child: const Text('Update Profile'),
+                                ),
+                        ],
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: _isSigningOut
+                              ? null
+                              : () async {
+                                  setState(() {
+                                    _isSigningOut = true;
+                                  });
+
+                                  final messenger = ScaffoldMessenger.of(context);
+                                  final authService = Provider.of<AuthService>(context, listen: false);
+                                  // final navigator = Navigator.of(context);
+                                  try {
+                                    await authService.signOut();
+
+                                    // Explicitly navigate to LoginPage after successful sign out
+                                    if (context.mounted) {
+                                      context.go(RouteNames.loginPage); // ✅ Redirects to login and removes all previous routes
+                                    }
+
+                                    // if (context.mounted) {
+                                    //   navigator.pushAndRemoveUntil(
+                                    //     MaterialPageRoute(builder: (context) => const LoginPage()),
+                                    //     (Route<dynamic> route) => false, // Remove all previous routes
+                                    //   );
+                                    // }
+                                  } catch (e) {
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text('Error during sign out: $e'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  } finally {
+                                    setState(() {
+                                      _isSigningOut = false;
+                                    });
+                                  }
+                                },
+                          child: _isSigningOut
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(),
+                                )
+                              : const Text('Sign Out'),
                         ),
-                        const SizedBox(height: 10),
-                        if (_userProfile!.avatarUrl != null || _avatarImage != null)
-                          ElevatedButton(
-                            onPressed: _removeAvatar,
-                            child: const Text('Remove Avatar'),
-                          ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () async {
+                                  setState(() {
+                                    _isLoading = true;
+                                  });
+                                  final authService = Provider.of<AuthService>(context, listen: false);
+                                  final messenger = ScaffoldMessenger.of(context);
+                                  // final navigator = Navigator.of(context);
+                                  try {
+                                    await authService.requestPasswordResetOtp(
+                                      authService.currentUser!.email!,
+                                    );
+                                    if (context.mounted) {
+                                      context.push(RouteNames.otpPage, extra: {
+                                        'email': authService.currentUser?.email ?? '',
+                                        'isResetPassword': true,
+                                      });
+                                    }
+
+                                    // if (mounted) {
+                                    //   navigator.push(
+                                    //     MaterialPageRoute(
+                                    //       builder: (context) => OtpPage(
+                                    //         email: authService.currentUser!.email!,
+                                    //         isResetPassword: true,
+                                    //       ),
+                                    //     ),
+                                    //   );
+                                    // }
+                                  } catch (error) {
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text('Error: ${error.toString()}'),
+                                      ),
+                                    );
+                                  } finally {
+                                    setState(() {
+                                      _isLoading = false;
+                                    });
+                                  }
+                                },
+                          child: _isLoading ? const CircularProgressIndicator() : const Text('Update Password'),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller: _fullNameController,
-                      decoration: const InputDecoration(labelText: 'Full Name'),
-                    ),
-                    TextFormField(
-                      controller: _usernameController,
-                      decoration: const InputDecoration(labelText: 'Username'),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter a username';
-                        }
-                        if (value.length < 3) {
-                          return 'Username must be at least 3 characters long';
-                        }
-                        return null;
-                      },
-                    ),
-                    TextFormField(
-                      controller: _websiteController,
-                      decoration: const InputDecoration(labelText: 'Website'),
-                    ),
-                    TextFormField(
-                      controller: _displayIdController,
-                      decoration: const InputDecoration(labelText: 'Display ID'),
-                    ),
-                    const SizedBox(height: 20),
-                    _isLoading
-                        ? const CircularProgressIndicator()
-                        : ElevatedButton(
-                            onPressed: _updateProfile,
-                            child: const Text('Update Profile'),
-                          ),
-                  ],
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _isSigningOut
-                        ? null
-                        : () async {
-                            setState(() {
-                              _isSigningOut = true;
-                            });
-
-                            final messenger = ScaffoldMessenger.of(context);
-                            final authService = Provider.of<AuthService>(context, listen: false);
-                            // final navigator = Navigator.of(context);
-                            try {
-                              await authService.signOut();
-
-                              // Explicitly navigate to LoginPage after successful sign out
-                              if (context.mounted) {
-                                context.go(RouteNames.loginPage); // ✅ Redirects to login and removes all previous routes
-                              }
-
-                              // if (context.mounted) {
-                              //   navigator.pushAndRemoveUntil(
-                              //     MaterialPageRoute(builder: (context) => const LoginPage()),
-                              //     (Route<dynamic> route) => false, // Remove all previous routes
-                              //   );
-                              // }
-                            } catch (e) {
-                              messenger.showSnackBar(
-                                SnackBar(
-                                  content: Text('Error during sign out: $e'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            } finally {
-                              setState(() {
-                                _isSigningOut = false;
-                              });
-                            }
-                          },
-                    child: _isSigningOut
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(),
-                          )
-                        : const Text('Sign Out'),
                   ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _isLoading
-                        ? null
-                        : () async {
-                            setState(() {
-                              _isLoading = true;
-                            });
-                            final authService = Provider.of<AuthService>(context, listen: false);
-                            final messenger = ScaffoldMessenger.of(context);
-                            // final navigator = Navigator.of(context);
-                            try {
-                              await authService.requestPasswordResetOtp(
-                                authService.currentUser!.email!,
-                              );
-                              if (context.mounted) {
-                                context.push(RouteNames.otpPage, extra: {
-                                  'email': authService.currentUser?.email ?? '',
-                                  'isResetPassword': true,
-                                });
-                              }
-
-                              // if (mounted) {
-                              //   navigator.push(
-                              //     MaterialPageRoute(
-                              //       builder: (context) => OtpPage(
-                              //         email: authService.currentUser!.email!,
-                              //         isResetPassword: true,
-                              //       ),
-                              //     ),
-                              //   );
-                              // }
-                            } catch (error) {
-                              messenger.showSnackBar(
-                                SnackBar(
-                                  content: Text('Error: ${error.toString()}'),
-                                ),
-                              );
-                            } finally {
-                              setState(() {
-                                _isLoading = false;
-                              });
-                            }
-                          },
-                    child: _isLoading ? const CircularProgressIndicator() : const Text('Update Password'),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ),
       ),
     );
   }
