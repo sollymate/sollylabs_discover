@@ -65,14 +65,12 @@ Future<void> main() async {
         Provider<Database>(
           create: (_) => Database(
             profileService: ProfileService(),
-            // connectionService: ConnectionService(),
             communityService: CommunityService(),
             networkService: NetworkService(),
           ),
         ),
-        // Provider<ConnectionService>(create: (_) => ConnectionService()),
         Provider<ProfileService>(create: (context) => context.read<Database>().profileService),
-        // Provider<CommunityService>(create: (context) => context.read<Database>().communityService),
+        Provider<CommunityService>(create: (context) => context.read<Database>().communityService),
         Provider<NetworkService>(create: (context) => context.read<Database>().networkService),
 
         // Add other providers here if needed
