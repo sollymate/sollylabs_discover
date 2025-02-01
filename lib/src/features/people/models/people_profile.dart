@@ -1,6 +1,6 @@
 import 'package:uuid/uuid.dart';
 
-class CommunityProfile {
+class PeopleProfile {
   final UuidValue userId;
   final String? email;
   final String? displayId;
@@ -12,7 +12,7 @@ class CommunityProfile {
   final bool isBlocked;
   final bool isBlockedBy;
 
-  CommunityProfile({
+  PeopleProfile({
     required this.userId,
     this.email,
     this.displayId,
@@ -25,8 +25,8 @@ class CommunityProfile {
     required this.isBlockedBy,
   });
 
-  factory CommunityProfile.fromJson(Map<String, dynamic> json) {
-    return CommunityProfile(
+  factory PeopleProfile.fromJson(Map<String, dynamic> json) {
+    return PeopleProfile(
       userId: UuidValue.fromString(json['user_id']),
       email: json['email'],
       displayId: json['display_id'],

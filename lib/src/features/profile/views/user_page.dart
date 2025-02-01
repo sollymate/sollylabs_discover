@@ -3,22 +3,22 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:sollylabs_discover/auth/auth_service.dart';
-import 'package:sollylabs_discover/database/database.dart';
-import 'package:sollylabs_discover/database/models/profile.dart';
-import 'package:sollylabs_discover/pages/login_page.dart';
-import 'package:sollylabs_discover/pages/otp_page.dart';
+import 'package:sollylabs_discover/src/core/authentication/services/auth_service.dart';
+import 'package:sollylabs_discover/src/core/authentication/views/login_page.dart';
+import 'package:sollylabs_discover/src/core/authentication/views/otp_page.dart';
+import 'package:sollylabs_discover/src/features/profile/models/user_profile.dart';
+import 'package:sollylabs_discover/src/global_state/app_services.dart';
 
-class AccountPage extends StatefulWidget {
-  const AccountPage({super.key});
+class UserPage extends StatefulWidget {
+  const UserPage({super.key});
 
   @override
-  State<AccountPage> createState() => _AccountPageState();
+  State<UserPage> createState() => _UserPageState();
 }
 
-class _AccountPageState extends State<AccountPage> {
+class _UserPageState extends State<UserPage> {
   bool _isSigningOut = false;
-  Profile? _userProfile;
+  UserProfile? _userProfile;
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
@@ -43,9 +43,9 @@ class _AccountPageState extends State<AccountPage> {
   }
 
   Future<void> _loadUserProfile() async {
-    final database = Provider.of<Database>(context, listen: false);
+    final database = Provider.of<AppServices>(context, listen: false);
     try {
-      final profile = await database.profileService.getProfile();
+      final profile = await database.userService.getProfile();
       if (profile != null && mounted) {
         setState(() {
           _userProfile = profile;
@@ -63,11 +63,11 @@ class _AccountPageState extends State<AccountPage> {
 
   Future<void> _updateProfile() async {
     if (_formKey.currentState!.validate()) {
-      final database = Provider.of<Database>(context, listen: false);
+      final database = Provider.of<AppServices>(context, listen: false);
 
       // Validate uniqueness of displayId if it's not null
       if (_displayIdController.text.isNotEmpty) {
-        final isUnique = await database.profileService.isDisplayIdUnique(_displayIdController.text, _userProfile!.id.uuid);
+        final isUnique = await database.userService.isDisplayIdUnique(_displayIdController.text, _userProfile!.id.uuid);
         if (!isUnique && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Display ID is already taken'), backgroundColor: Colors.red));
           return;
@@ -76,10 +76,10 @@ class _AccountPageState extends State<AccountPage> {
 
       String? avatarUrl;
       if (_avatarImage != null) {
-        avatarUrl = await database.profileService.uploadAvatar(_userProfile!.id.uuid, _avatarImage!);
+        avatarUrl = await database.userService.uploadAvatar(_userProfile!.id.uuid, _avatarImage!);
       }
 
-      final updatedProfile = Profile(
+      final updatedProfile = UserProfile(
         id: _userProfile!.id,
         fullName: _fullNameController.text,
         username: _usernameController.text,
@@ -91,7 +91,7 @@ class _AccountPageState extends State<AccountPage> {
       );
 
       try {
-        await database.profileService.updateProfile(updatedProfile);
+        await database.userService.updateProfile(updatedProfile);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -129,15 +129,15 @@ class _AccountPageState extends State<AccountPage> {
   }
 
   Future<void> _removeAvatar() async {
-    final database = Provider.of<Database>(context, listen: false);
+    final database = Provider.of<AppServices>(context, listen: false);
     final messenger = ScaffoldMessenger.of(context);
     try {
       // Delete the avatar from storage
-      await database.profileService.deleteAvatar(_userProfile!.id.uuid);
+      await database.userService.deleteAvatar(_userProfile!.id.uuid);
 
       // Update the user's profile to set the avatarUrl to null
       final updatedProfile = _userProfile!.copyWith(avatarUrl: null);
-      await database.profileService.updateProfile(updatedProfile);
+      await database.userService.updateProfile(updatedProfile);
 
       if (mounted) {
         setState(() {

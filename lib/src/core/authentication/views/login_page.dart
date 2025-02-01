@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sollylabs_discover/widgets/sign_in_form.dart';
+import 'package:sollylabs_discover/src/core/authentication/widgets/sign_in_form.dart';
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});

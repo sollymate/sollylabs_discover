@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:sollylabs_discover/auth/auth_service.dart';
+import 'package:sollylabs_discover/src/core/authentication/services/auth_service.dart';
 
 // Define the type alias
 typedef CreatePasswordWidgetState = State<CreatePasswordPage>;

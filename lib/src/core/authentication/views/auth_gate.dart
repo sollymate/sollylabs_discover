@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:sollylabs_discover/auth/auth_service.dart';
-import 'package:sollylabs_discover/pages/dashboard_page.dart';
-import 'package:sollylabs_discover/pages/login_page.dart';
+import 'package:sollylabs_discover/src/core/authentication/services/auth_service.dart';
+import 'package:sollylabs_discover/src/core/authentication/views/login_page.dart';
+import 'package:sollylabs_discover/src/core/views/dashboard_page.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});

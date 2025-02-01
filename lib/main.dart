@@ -2,20 +2,20 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:provider/provider.dart';
-import 'package:sollylabs_discover/auth/auth_gate.dart';
-import 'package:sollylabs_discover/auth/auth_service.dart';
-import 'package:sollylabs_discover/pages/update_password_after_reset_page.dart';
+import 'package:sollylabs_discover/src/core/authentication/services/auth_service.dart';
+import 'package:sollylabs_discover/src/core/authentication/views/auth_gate.dart';
+import 'package:sollylabs_discover/src/core/authentication/views/update_password_after_reset_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'database/database.dart';
-import 'database/services/community_service.dart';
-import 'database/services/network_service.dart';
-import 'database/services/profile_service.dart';
-import 'pages/account/account_page.dart';
-import 'pages/community_page.dart';
-import 'pages/dashboard_page.dart';
-import 'pages/network_page.dart';
-import 'pages/update_password_page.dart';
+import 'src/core/authentication/views/update_password_page.dart';
+import 'src/core/views/dashboard_page.dart';
+import 'src/features/network/services/network_service.dart';
+import 'src/features/network/views/network_page.dart';
+import 'src/features/people/services/people_service.dart';
+import 'src/features/people/views/people_page.dart';
+import 'src/features/profile/services/user_service.dart';
+import 'src/features/profile/views/user_page.dart';
+import 'src/global_state/app_services.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -62,16 +62,16 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService(Supabase.instance.client)),
-        Provider<Database>(
-          create: (_) => Database(
-            profileService: ProfileService(),
-            communityService: CommunityService(),
+        Provider<AppServices>(
+          create: (_) => AppServices(
+            userService: UserService(),
+            peopleService: PeopleService(),
             networkService: NetworkService(),
           ),
         ),
-        Provider<ProfileService>(create: (context) => context.read<Database>().profileService),
-        Provider<CommunityService>(create: (context) => context.read<Database>().communityService),
-        Provider<NetworkService>(create: (context) => context.read<Database>().networkService),
+        Provider<UserService>(create: (context) => context.read<AppServices>().userService),
+        Provider<PeopleService>(create: (context) => context.read<AppServices>().peopleService),
+        Provider<NetworkService>(create: (context) => context.read<AppServices>().networkService),
 
         // Add other providers here if needed
       ],
@@ -93,11 +93,11 @@ class MyApp extends StatelessWidget {
       ),
       routes: {
         '/': (context) => const AuthGate(),
-        '/account': (context) => const AccountPage(),
+        '/account': (context) => const UserPage(),
         '/update-password': (context) => const UpdatePasswordAfterResetPage(),
         '/dashboard': (context) => const DashboardPage(),
         '/update-password-in-app': (context) => const UpdatePasswordPage(),
-        '/community': (context) => const CommunityPage(),
+        '/community': (context) => const PeoplePage(),
         '/network': (context) => const NetworkPage(),
       },
       initialRoute: '/',

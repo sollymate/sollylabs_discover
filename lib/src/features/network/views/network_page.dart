@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:sollylabs_discover/auth/auth_service.dart';
-import 'package:sollylabs_discover/database/models/network_model.dart';
-import 'package:sollylabs_discover/database/services/network_service.dart';
+import 'package:sollylabs_discover/src/core/authentication/services/auth_service.dart';
+import 'package:sollylabs_discover/src/features/network/models/network_model.dart';
+import 'package:sollylabs_discover/src/features/network/services/network_service.dart';
 
 class NetworkPage extends StatefulWidget {
   const NetworkPage({super.key});

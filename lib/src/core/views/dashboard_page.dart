@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:sollylabs_discover/pages/account/account_page.dart';
+import 'package:sollylabs_discover/src/features/profile/views/user_page.dart';
 
-import 'community_page.dart';
-import 'network_page.dart';
+import '../../features/network/views/network_page.dart';
+import '../../features/people/views/people_page.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -26,7 +26,7 @@ class DashboardPage extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const AccountPage(),
+                    builder: (context) => const UserPage(),
                   ),
                 );
               },
@@ -38,7 +38,7 @@ class DashboardPage extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const CommunityPage()),
+                  MaterialPageRoute(builder: (context) => const PeoplePage()),
                 );
               },
             ),

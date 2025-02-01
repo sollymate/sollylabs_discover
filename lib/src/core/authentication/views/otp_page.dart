@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:sollylabs_discover/auth/auth_service.dart';
-import 'package:sollylabs_discover/pages/update_password_after_reset_page.dart';
+import 'package:sollylabs_discover/src/core/authentication/services/auth_service.dart';
+import 'package:sollylabs_discover/src/core/authentication/views/update_password_after_reset_page.dart';
 
 class OtpPage extends StatefulWidget {
   final String email;

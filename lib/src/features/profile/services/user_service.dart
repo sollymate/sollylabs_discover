@@ -2,13 +2,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
-import 'package:sollylabs_discover/database/models/profile.dart';
-import 'package:sollylabs_discover/global/globals.dart';
+import 'package:sollylabs_discover/src/core/config/supabase_client.dart';
+import 'package:sollylabs_discover/src/features/profile/models/user_profile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class ProfileService {
-  Future<List<Profile>> getAllProfiles({required String currentUserId, String? searchQuery, int? limit, int offset = 0}) async {
-    var query = globals.supabaseClient.from('profiles').select('id, email, display_id, full_name, avatar_url, updated_at');
+class UserService {
+  Future<List<UserProfile>> getAllProfiles({required String currentUserId, String? searchQuery, int? limit, int offset = 0}) async {
+    var query = supabase.from('profiles').select('id, email, display_id, full_name, avatar_url, updated_at');
 
     if (searchQuery != null && searchQuery.isNotEmpty) {
       query = query.or('email.ilike.%$searchQuery%,display_id.ilike.%$searchQuery%,website.ilike.%$searchQuery%'); // ✅ Filter at DB level
@@ -18,7 +18,7 @@ class ProfileService {
         ? await query.range(offset, offset + limit - 1) // ✅ Use correct offset for pagination
         : await query;
 
-    return response.isNotEmpty ? response.map<Profile>((data) => Profile.fromJson(data)).toList() : [];
+    return response.isNotEmpty ? response.map<UserProfile>((data) => UserProfile.fromJson(data)).toList() : [];
   }
 
   /// ✅ **Upload User Avatar**
@@ -27,9 +27,9 @@ class ProfileService {
       final fileExt = path.extension(imageFile.path);
       final fileName = 'avatars/$userId/avatar$fileExt';
 
-      await globals.supabaseClient.storage.from('avatars').upload(fileName, imageFile, fileOptions: const FileOptions(cacheControl: '3600', upsert: true));
+      await supabase.storage.from('avatars').upload(fileName, imageFile, fileOptions: const FileOptions(cacheControl: '3600', upsert: true));
 
-      return globals.supabaseClient.storage.from('avatars').getPublicUrl(fileName);
+      return supabase.storage.from('avatars').getPublicUrl(fileName);
     } catch (e) {
       debugPrint('Error uploading avatar: $e');
       rethrow;
@@ -40,11 +40,11 @@ class ProfileService {
   Future<void> deleteAvatar(String userId) async {
     try {
       final pathToDelete = 'avatars/$userId/';
-      final files = await globals.supabaseClient.storage.from('avatars').list(path: pathToDelete);
+      final files = await supabase.storage.from('avatars').list(path: pathToDelete);
       final filesToDelete = files.map((file) => '$pathToDelete${file.name}').toList();
 
       if (filesToDelete.isNotEmpty) {
-        await globals.supabaseClient.storage.from('avatars').remove(filesToDelete);
+        await supabase.storage.from('avatars').remove(filesToDelete);
       }
     } catch (e) {
       debugPrint('Error deleting avatar: $e');
@@ -53,18 +53,18 @@ class ProfileService {
   }
 
   /// ✅ **Get Current User Profile**
-  Future<Profile?> getProfile() async {
-    final user = globals.supabaseClient.auth.currentUser;
+  Future<UserProfile?> getProfile() async {
+    final user = supabase.auth.currentUser;
     if (user == null) return null;
 
-    final response = await globals.supabaseClient.from('profiles').select().eq('id', user.id).maybeSingle();
-    return response != null ? Profile.fromJson(response) : null;
+    final response = await supabase.from('profiles').select().eq('id', user.id).maybeSingle();
+    return response != null ? UserProfile.fromJson(response) : null;
   }
 
   /// ✅ **Update Profile**
-  Future<void> updateProfile(Profile updatedProfile) async {
+  Future<void> updateProfile(UserProfile updatedProfile) async {
     try {
-      await globals.supabaseClient.from('profiles').update(updatedProfile.toJson()).eq('id', updatedProfile.id.uuid);
+      await supabase.from('profiles').update(updatedProfile.toJson()).eq('id', updatedProfile.id.uuid);
     } catch (e) {
       debugPrint('Error updating user profile: $e');
       rethrow;
@@ -73,7 +73,7 @@ class ProfileService {
 
   /// ✅ **Check if Display ID is Unique**
   Future<bool> isDisplayIdUnique(String displayId, String currentUserId) async {
-    final response = await globals.supabaseClient.from('profiles').select('id').eq('display_id', displayId).neq('id', currentUserId);
+    final response = await supabase.from('profiles').select('id').eq('display_id', displayId).neq('id', currentUserId);
     return response.isEmpty;
   }
 }

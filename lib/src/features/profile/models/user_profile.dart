@@ -1,6 +1,6 @@
 import 'package:uuid/uuid.dart';
 
-class Profile {
+class UserProfile {
   final UuidValue id;
   final DateTime? updatedAt;
   final String? username;
@@ -11,7 +11,7 @@ class Profile {
   final String? email;
   final bool isConnected; // ✅ New field
 
-  Profile({
+  UserProfile({
     required this.id,
     this.updatedAt,
     this.username,
@@ -23,8 +23,8 @@ class Profile {
     this.isConnected = false, // ✅ Default to false
   });
 
-  factory Profile.fromJson(Map<String, dynamic> json) {
-    return Profile(
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    return UserProfile(
       id: UuidValue.fromString(json['id']),
       updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
       username: json['username'],
@@ -52,7 +52,7 @@ class Profile {
   }
 
   // ✅ **Added copyWith Method**
-  Profile copyWith({
+  UserProfile copyWith({
     UuidValue? id,
     DateTime? updatedAt,
     String? username,
@@ -63,7 +63,7 @@ class Profile {
     String? email,
     bool? isConnected,
   }) {
-    return Profile(
+    return UserProfile(
       id: id ?? this.id,
       updatedAt: updatedAt ?? this.updatedAt,
       username: username ?? this.username,

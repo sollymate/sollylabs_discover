@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:sollylabs_discover/auth/auth_service.dart';
-import 'package:sollylabs_discover/database/models/community_profile.dart';
-import 'package:sollylabs_discover/database/services/community_service.dart';
-import 'package:sollylabs_discover/database/services/network_service.dart';
+import 'package:sollylabs_discover/src/core/authentication/services/auth_service.dart';
+import 'package:sollylabs_discover/src/features/network/services/network_service.dart';
+import 'package:sollylabs_discover/src/features/people/models/people_profile.dart';
+import 'package:sollylabs_discover/src/features/people/services/people_service.dart';
 
-class CommunityPage extends StatefulWidget {
-  const CommunityPage({super.key});
+class PeoplePage extends StatefulWidget {
+  const PeoplePage({super.key});
 
   @override
-  State<CommunityPage> createState() => _CommunityPageState();
+  State<PeoplePage> createState() => _PeoplePageState();
 }
 
-class _CommunityPageState extends State<CommunityPage> {
-  late CommunityService _communityService;
+class _PeoplePageState extends State<PeoplePage> {
+  late PeopleService _communityService;
   // late NetworkService _networkService;
   // late ConnectionService _connectionService;
   late NetworkService _networkService;
   late String _currentUserId;
   late String _currentUserEmail;
-  List<CommunityProfile> _profiles = [];
+  List<PeopleProfile> _profiles = [];
   Set<String> _connectedUserIds = {};
   Set<String> _blockedUserIds = {}; // ✅ Store blocked users
   bool _isLoading = true;
@@ -33,7 +33,7 @@ class _CommunityPageState extends State<CommunityPage> {
   void initState() {
     super.initState();
     final authService = Provider.of<AuthService>(context, listen: false);
-    _communityService = Provider.of<CommunityService>(context, listen: false);
+    _communityService = Provider.of<PeopleService>(context, listen: false);
     // _networkService = Provider.of<CommunityService>(context, listen: false);
     _networkService = Provider.of<NetworkService>(context, listen: false);
     _currentUserId = authService.currentUser!.id;
