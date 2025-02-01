@@ -2,6 +2,20 @@ import 'package:sollylabs_discover/database/models/network_model.dart';
 import 'package:sollylabs_discover/global/globals.dart';
 
 class NetworkService {
+  Future<void> addConnection(String userId, String targetUserId) async {
+    final orderedUser1 = userId.compareTo(targetUserId) < 0 ? userId : targetUserId;
+    final orderedUser2 = userId.compareTo(targetUserId) < 0 ? targetUserId : userId;
+
+    final response = await globals.supabaseClient.from('connections').insert({
+      'user1_id': orderedUser1,
+      'user2_id': orderedUser2,
+    }).select();
+
+    if (response.isEmpty) {
+      throw Exception('Failed to send connection request');
+    }
+  }
+
   /// ✅ Fetch active network connections (non-blocked)
   Future<List<NetworkModel>> getNetwork({required String currentUserId}) async {
     try {
@@ -65,3 +79,22 @@ class NetworkService {
     }
   }
 }
+
+// Future<List<CommunityProfile>> getCommunityProfiles({
+//   required String currentUserId,
+//   String? searchQuery,
+//   int? limit,
+//   int offset = 0,
+// }) async {
+//   var query = globals.supabaseClient.from('community').select('user_id, email, display_id, full_name, avatar_url, website, updated_at, is_connected, is_blocked, is_blocked_by').neq('user_id', currentUserId); // Exclude the current user
+//
+//   // Apply search if provided (Temporary: ilike-based, FTS will be added later)
+//   if (searchQuery != null && searchQuery.isNotEmpty) {
+//     query = query.or('email.ilike.%$searchQuery%,display_id.ilike.%$searchQuery%,website.ilike.%$searchQuery%');
+//   }
+//
+//   // Apply pagination if a limit is specified
+//   final response = limit != null ? await query.range(offset, offset + limit - 1) : await query;
+//
+//   return response.map<CommunityProfile>((data) => CommunityProfile.fromJson(data)).toList();
+// }
