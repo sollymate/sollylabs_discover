@@ -2,22 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:provider/provider.dart';
 import 'package:sollylabs_discover/src/core/authentication/services/auth_service.dart';
-import 'package:sollylabs_discover/src/core/authentication/views/auth_gate.dart';
-import 'package:sollylabs_discover/src/core/authentication/views/update_password_after_reset_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'src/core/authentication/views/update_password_page.dart';
 import 'src/core/config/supabase_setup.dart';
-import 'src/core/views/dashboard_page.dart';
+import 'src/core/navigation/app_router.dart';
 import 'src/features/network/services/network_service.dart';
-import 'src/features/network/views/network_page.dart';
 import 'src/features/people/data/people_remote_data_source.dart';
 import 'src/features/people/repositories/people_repository.dart';
 import 'src/features/people/services/people_service.dart';
 import 'src/features/people/view_models/people_view_model.dart';
-import 'src/features/people/views/people_page.dart';
 import 'src/features/profile/services/user_service.dart';
-import 'src/features/profile/views/user_page.dart';
 import 'src/global_state/app_services.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -65,23 +59,28 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: navigatorKey,
+    return MaterialApp.router(
+      routerConfig: AppRouter.router, // ✅ Using GoRouter instead of routes
       title: 'Solly Labs',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      routes: {
-        '/': (context) => const AuthGate(),
-        '/account': (context) => const UserPage(),
-        '/update-password': (context) => const UpdatePasswordAfterResetPage(),
-        '/dashboard': (context) => const DashboardPage(),
-        '/update-password-in-app': (context) => const UpdatePasswordPage(),
-        '/community': (context) => const PeoplePage(),
-        '/network': (context) => const NetworkPage(),
-      },
-      initialRoute: '/',
+      theme: ThemeData(primarySwatch: Colors.blue),
     );
+    // return MaterialApp(
+    //   navigatorKey: navigatorKey,
+    //   title: 'Solly Labs',
+    //   theme: ThemeData(
+    //     primarySwatch: Colors.blue,
+    //   ),
+    //   routes: {
+    //     '/': (context) => const AuthGate(),
+    //     '/account': (context) => const UserPage(),
+    //     '/update-password': (context) => const UpdatePasswordAfterResetPage(),
+    //     '/dashboard': (context) => const DashboardPage(),
+    //     '/update-password-in-app': (context) => const UpdatePasswordPage(),
+    //     '/community': (context) => const PeoplePage(),
+    //     '/network': (context) => const NetworkPage(),
+    //   },
+    //   initialRoute: '/',
+    // );
   }
 }
 

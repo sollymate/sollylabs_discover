@@ -23,12 +23,7 @@ class DashboardPage extends StatelessWidget {
               icon: const Icon(Icons.account_circle),
               label: const Text('Account'),
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const UserPage(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const UserPage()));
               },
             ),
             const SizedBox(height: 16),
